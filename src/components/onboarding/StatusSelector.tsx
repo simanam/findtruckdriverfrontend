@@ -64,7 +64,7 @@ export function StatusSelector() {
                             key={option.id}
                             onClick={() => setStatus(option.id)}
                             className={cn(
-                                "relative flex flex-col items-center justify-center gap-1 px-6 py-3 rounded-xl transition-all duration-300 min-w-[100px]",
+                                "relative flex flex-col items-center justify-center gap-1 px-6 py-3 rounded-xl transition-all duration-300 min-w-[100px] pointer-events-auto cursor-pointer z-50",
                                 isSelected
                                     ? cn("bg-gradient-to-br border shadow-lg scale-105 z-10", option.gradient, option.glow)
                                     : "bg-slate-900/90 backdrop-blur-md border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white"
@@ -97,7 +97,7 @@ export function StatusSelector() {
             )}>
                 <button
                     onClick={() => setStep(2)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-sky-500/25 transition-all hover:scale-105 active:scale-95"
+                    className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-sky-500/25 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer z-50"
                 >
                     <span>Confirm Status</span>
                     <Truck className="w-4 h-4" />

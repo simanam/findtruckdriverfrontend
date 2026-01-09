@@ -5,7 +5,7 @@ import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { StatusSelector } from "@/components/onboarding/StatusSelector";
 import { AvatarBuilder } from "@/components/onboarding/AvatarBuilder";
 import { HandleInput } from "@/components/onboarding/HandleInput";
-import { PhoneVerification } from "@/components/onboarding/PhoneVerification";
+import { EmailVerification } from "@/components/onboarding/EmailVerification";
 import { useEffect } from "react";
 
 export default function JoinPage() {
@@ -41,8 +41,8 @@ export default function JoinPage() {
             case 4:
                 return {
                     title: "Verify it's you",
-                    subtitle: "We'll text you a code to secure your account.",
-                    component: <PhoneVerification />
+                    subtitle: "We'll send a code to your email to secure your account.",
+                    component: <EmailVerification />
                 };
             default:
                 return { title: "", subtitle: "", component: null };

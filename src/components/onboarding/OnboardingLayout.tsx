@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode } from "react";
-import { InteractiveMap } from "@/components/map/InteractiveMap";
 import { cn } from "@/lib/utils";
 import { Map as MapIcon, X } from "lucide-react";
 
@@ -12,6 +11,7 @@ interface OnboardingLayoutProps {
     step: number;
     totalSteps: number;
     onClose?: () => void;
+    centeredMode?: boolean; // New prop for Login page
 }
 
 export function OnboardingLayout({
@@ -20,20 +20,23 @@ export function OnboardingLayout({
     subtitle,
     step,
     totalSteps,
-    onClose
+    onClose,
+    centeredMode = false
 }: OnboardingLayoutProps) {
-    // Step 1 (Status) uses a floating/minimal layout to see the map
-    const isFloatingMode = step === 1;
+    // Step 1 (Status) uses floating mode, UNLESS we are in centeredMode (Login)
+    const isFloatingMode = step === 1 && !centeredMode;
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-slate-950 flex items-center justify-center">
-            {/* Background Map - visible and interactive in step 1, blurred in others */}
+        <div className="relative w-full h-full min-h-screen flex items-center justify-center pointer-events-none">
+            {/* 
+                Background Blur Overlay
+                Only applied when NOT in floating mode (i.e. for avatars, login, etc)
+                We don't render the map here anymore, it's global.
+            */}
             <div className={cn(
-                "absolute inset-0 z-0 transition-all duration-700",
-                isFloatingMode ? "opacity-100 scale-100" : "opacity-30 blur-md scale-105 pointer-events-none"
-            )}>
-                <InteractiveMap />
-            </div>
+                "absolute inset-0 z-0 transition-all duration-700 pointer-events-none",
+                isFloatingMode ? "backdrop-blur-none" : "backdrop-blur-sm bg-slate-950/40"
+            )} />
 
             {/* Close Button (Top Right) */}
             {onClose && (
@@ -47,7 +50,7 @@ export function OnboardingLayout({
 
             {/* Layout Wrapper */}
             <div className={cn(
-                "relative z-10 w-full transition-all duration-500",
+                "relative z-[60] w-full transition-all duration-500",
                 isFloatingMode
                     ? "h-full flex flex-col justify-end pb-8 px-4 pointer-events-none" // Floating Mode: Bottom alignment, pass clicks through empty space
                     : "flex items-center justify-center p-4" // Standard Modal Mode
@@ -62,7 +65,7 @@ export function OnboardingLayout({
                     "w-full transition-all duration-500",
                     isFloatingMode
                         ? "max-w-2xl mx-auto pointer-events-auto" // Width for floating bar
-                        : "max-w-md bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95"
+                        : "max-w-md bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 pointer-events-auto"
                 )}>
 
                     {/* Progress Bar (Only show in modal mode for now? Or keep minimal?) */}
@@ -98,6 +101,6 @@ export function OnboardingLayout({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

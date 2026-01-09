@@ -7,13 +7,13 @@ interface OnboardingState {
     status: DriverStatus | null;
     avatarId: string | null;
     handle: string;
-    phone: string;
+    email: string;
 
     setStep: (step: number) => void;
     setStatus: (status: DriverStatus) => void;
     setAvatarId: (id: string) => void;
     setHandle: (handle: string) => void;
-    setPhone: (phone: string) => void;
+    setEmail: (email: string) => void;
     reset: () => void;
 }
 
@@ -22,18 +22,18 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     status: null,
     avatarId: null,
     handle: '',
-    phone: '',
+    email: '',
 
     setStep: (step) => set({ step }),
     setStatus: (status) => set({ status }),
     setAvatarId: (avatarId) => set({ avatarId }),
     setHandle: (handle) => set({ handle }),
-    setPhone: (phone) => set({ phone }),
+    setEmail: (email) => set({ email }),
     reset: () => set({
         step: 1,
         status: null,
         avatarId: null,
         handle: '',
-        phone: ''
+        email: ''
     }),
 }));

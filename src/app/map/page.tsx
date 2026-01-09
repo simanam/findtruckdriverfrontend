@@ -1,32 +1,55 @@
-import { InteractiveMap } from "@/components/map/InteractiveMap";
+"use client";
+
+
 import { LiveStatsBar } from "@/components/stats/LiveStatsBar";
+
 import { Menu } from "lucide-react";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { useEffect } from "react";
+import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 export default function MapPage() {
+    const { avatarId, status, setAvatarId, setStatus, setHandle } = useOnboardingStore();
+    const router = useRouter();
+
+    useEffect(() => {
+        const checkUser = async () => {
+            try {
+                // 1. Verify Session
+                await api.auth.getMe();
+
+                // 2. Hydrate Profile if missing in store
+                if (!avatarId) {
+                    try {
+                        const driver = await api.drivers.getMe();
+                        if (driver && driver.handle) {
+                            setAvatarId(driver.avatar_id);
+                            setStatus(driver.status);
+                            setHandle(driver.handle);
+                        }
+                    } catch (e) {
+                        // No profile? Maybe redirect to onboarding or let them chill
+                        console.warn("User logged in but no profile found");
+                    }
+                }
+            } catch (error) {
+                // Not logged in -> Redirect home
+                router.push('/');
+            }
+        };
+
+        checkUser();
+    }, [avatarId, router, setAvatarId, setStatus, setHandle]);
+
     return (
-        <main className="relative w-full h-screen overflow-hidden bg-slate-950">
-            {/* Header for Authenticated User */}
-            <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none flex justify-between items-start">
-                {/* Toggle Button */}
-                <button className="pointer-events-auto p-3 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/50 text-slate-200 shadow-xl">
-                    <Menu className="w-6 h-6" />
-                </button>
-
-                {/* Stats */}
-                <div className="pointer-events-auto">
-                    <LiveStatsBar />
-                </div>
-
-                {/* Profile (Placeholder) */}
-                <div className="pointer-events-auto w-12 h-12 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-2xl shadow-xl">
-                    👨‍✈️
-                </div>
+        <main className="relative w-full h-screen overflow-hidden">
+            {/* Local Stats Only - Global Navbar handles the rest */}
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-full max-w-fit px-4">
+                <LiveStatsBar />
             </div>
 
-            {/* Map Layer */}
-            <div className="absolute inset-0 z-0">
-                <InteractiveMap />
-            </div>
+            {/* Map Layer - Handled Globally */}
         </main>
     );
 }
