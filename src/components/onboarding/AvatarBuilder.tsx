@@ -70,25 +70,67 @@ const getColorName = (hex: string) => {
     return map[hex] || hex;
 };
 
-export function AvatarBuilder() {
-    const { setAvatarId, setStep, status } = useOnboardingStore();
+interface AvatarBuilderProps {
+    initialAvatarId?: string;
+    onSave?: (avatarId: string) => void;
+    mode?: 'onboarding' | 'edit';
+}
+
+export function AvatarBuilder({ initialAvatarId, onSave, mode = 'onboarding' }: AvatarBuilderProps) {
+    const { setAvatarId, setStep, status: storeStatus } = useOnboardingStore();
+
+    // Use prop status if in edit mode (or just use "parked" as default if not provided), else use store
+    // actually dealing with status color in edit mode might be tricky if we don't pass it.
+    // For now let's adhere to store for onboarding, and maybe just default to 'parked' or blue for edit
+    const status = mode === 'onboarding' ? storeStatus : 'parked';
 
     // --- State ---
-    const [config, setConfig] = useState({
-        top: "shortWaved",
-        accessories: "none",
-        hairColor: "4a312c",
-        facialHair: "none",
-        facialHairColor: "4a312c",
-        clothing: "hoodie",
-        clothingColor: "25557c",
-        eyes: "default",
-        eyebrows: "default",
-        mouth: "smile",
-        skinColor: "edb98a"
+    const [config, setConfig] = useState(() => {
+        // Parse initial URL if provided
+        if (initialAvatarId) {
+            try {
+                const url = new URL(initialAvatarId);
+                const params = url.searchParams;
+                return {
+                    top: params.get('top') || "shortWaved",
+                    accessories: params.get('accessories') || "none",
+                    hairColor: params.get('hairColor') || "4a312c",
+                    facialHair: params.get('facialHair') || "none",
+                    facialHairColor: params.get('facialHairColor') || "4a312c",
+                    clothing: params.get('clothing') || "hoodie",
+                    clothingColor: params.get('clothingColor') || "25557c",
+                    eyes: params.get('eyes') || "default",
+                    eyebrows: params.get('eyebrows') || "default",
+                    mouth: params.get('mouth') || "smile",
+                    skinColor: params.get('skinColor') || "edb98a"
+                };
+            } catch (e) {
+                // validation or empty
+            }
+        }
+        return {
+            top: "shortWaved",
+            accessories: "none",
+            hairColor: "4a312c",
+            facialHair: "none",
+            facialHairColor: "4a312c",
+            clothing: "hoodie",
+            clothingColor: "25557c",
+            eyes: "default",
+            eyebrows: "default",
+            mouth: "smile",
+            skinColor: "edb98a"
+        };
     });
 
-    const [seed, setSeed] = useState("Driver");
+    const [seed, setSeed] = useState(() => {
+        if (initialAvatarId) {
+            const url = new URL(initialAvatarId);
+            return url.searchParams.get('seed') || "Driver";
+        }
+        return "Driver";
+    });
+
     const [showControls, setShowControls] = useState(false);
 
     // --- Dynamic Status Colors ---
@@ -152,8 +194,12 @@ export function AvatarBuilder() {
     };
 
     const saveAndContinue = () => {
-        setAvatarId(avatarUrl);
-        setStep(3);
+        if (mode === 'edit' && onSave) {
+            onSave(avatarUrl);
+        } else {
+            setAvatarId(avatarUrl);
+            setStep(3);
+        }
     };
 
     // --- Render Helpers ---
@@ -296,18 +342,20 @@ export function AvatarBuilder() {
 
             {/* Footer Navigation */}
             <div className="flex gap-3 pt-1">
-                <button
-                    onClick={() => setStep(1)}
-                    className="w-12 h-12 rounded-xl font-semibold bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center border border-slate-800 hover:border-slate-600"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
+                {mode === 'onboarding' && (
+                    <button
+                        onClick={() => setStep(1)}
+                        className="w-12 h-12 rounded-xl font-semibold bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center border border-slate-800 hover:border-slate-600"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                )}
 
                 <button
                     onClick={saveAndContinue}
                     className="flex-1 h-12 rounded-xl font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/25 transition-all text-base flex items-center justify-center gap-2 group"
                 >
-                    <span>Looks Good</span>
+                    <span>{mode === 'edit' ? 'Save Changes' : 'Looks Good'}</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
             </div>

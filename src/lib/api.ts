@@ -136,6 +136,20 @@ class ApiClient {
                 body: JSON.stringify({ status, ...location }),
             }),
 
+        getStats: () => this.request<any>('/drivers/me/stats'),
+
+        updateProfile: (data: { handle?: string; avatar_id?: string }) =>
+            this.request<any>('/drivers/me/profile', {
+                method: 'PATCH',
+                body: JSON.stringify(data)
+            }),
+
+        deleteAccount: (data: { confirmation: string; reason?: string }) =>
+            this.request<any>('/drivers/me', {
+                method: 'DELETE',
+                body: JSON.stringify(data)
+            }),
+
         updateLocation: (data: { latitude: number; longitude: number; heading?: number; speed?: number; accuracy?: number }) =>
             this.request('/locations/check-in', {
                 method: 'POST',

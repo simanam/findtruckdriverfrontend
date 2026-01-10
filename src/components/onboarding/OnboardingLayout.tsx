@@ -38,15 +38,7 @@ export function OnboardingLayout({
                 isFloatingMode ? "backdrop-blur-none" : "backdrop-blur-sm bg-slate-950/40"
             )} />
 
-            {/* Close Button (Top Right) */}
-            {onClose && (
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-50 p-2 bg-slate-900/80 backdrop-blur-md rounded-full text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 transition-all shadow-lg"
-                >
-                    <X className="w-6 h-6" />
-                </button>
-            )}
+            {/* Close Button Removed (Moved to Card) */}
 
             {/* Layout Wrapper */}
             <div className={cn(
@@ -62,11 +54,25 @@ export function OnboardingLayout({
                     Standard Card for Steps 2+ 
                 */}
                 <div className={cn(
-                    "w-full transition-all duration-500",
+                    "w-full transition-all duration-500 relative",
                     isFloatingMode
                         ? "max-w-2xl mx-auto pointer-events-auto" // Width for floating bar
                         : "max-w-md bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 pointer-events-auto"
                 )}>
+                    {/* Close Button (On Card) */}
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className={cn(
+                                "absolute top-4 right-4 z-50 p-2 rounded-full text-slate-400 hover:text-white transition-all",
+                                isFloatingMode
+                                    ? "bg-slate-900/80 border border-slate-700 hover:border-slate-500 shadow-lg" // Floating needs its own bg
+                                    : "hover:bg-slate-800/50" // Modal blends in
+                            )}
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    )}
 
                     {/* Progress Bar (Only show in modal mode for now? Or keep minimal?) */}
                     {!isFloatingMode && (

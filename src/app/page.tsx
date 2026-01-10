@@ -6,7 +6,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { StatusSelector } from "@/components/onboarding/StatusSelector";
 import { useRouter } from "next/navigation";
 import { useOnboardingStore } from "@/stores/onboardingStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 export default function Home() {
@@ -56,8 +56,28 @@ export default function Home() {
         </div>
       </div>
 
+      {/* 2.5 Hero Layer */}
+      <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 text-center w-full max-w-3xl px-4 pointer-events-none select-none">
+        <h1 className="text-5xl md:text-7xl font-black text-white drop-shadow-2xl mb-8 tracking-tighter">
+          Truckers helping <span className="text-sky-400">truckers</span>.
+        </h1>
+
+        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-lg md:text-2xl font-bold text-slate-100 drop-shadow-xl opacity-90 my-6 leading-snug">
+          <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100 whitespace-nowrap">Check in.</p>
+          <span className="hidden md:inline text-sky-400">•</span>
+          <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-200 whitespace-nowrap">Share what you see.</p>
+          <span className="hidden md:inline text-sky-400">•</span>
+          <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-300 whitespace-nowrap">See what others share.</p>
+        </div>
+
+        {/* Small single line subtext */}
+        <p className="text-sm md:text-lg font-medium text-slate-300 drop-shadow-md opacity-80 whitespace-nowrap animate-in slide-in-from-bottom-2 fade-in duration-700 delay-500">
+          Parking full? &bull; Wait too long? &bull; Spot sketchy?
+        </p>
+      </div>
+
       {/* 3. Status Selector (Bottom Center - Primary Action) */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-full flex justify-center" onClickCapture={handleStatusSelect}>
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-full flex justify-center pointer-events-auto" onClickCapture={handleStatusSelect}>
         <StatusSelector />
       </div>
 

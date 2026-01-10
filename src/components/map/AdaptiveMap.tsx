@@ -29,7 +29,7 @@ interface AdaptiveMapProps {
 export function AdaptiveMap({ className }: AdaptiveMapProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
-    const { status } = useOnboardingStore();
+    const { status, avatarId, handle } = useOnboardingStore();
     const { updateStatus } = useDriverAction();
 
     // Viewport state to drive logic
@@ -204,7 +204,13 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
                 {/* --- USER MARKER --- */}
                 {showFloatingUser && data.current_user && data.current_user.location && (
                     <CurrentUserMarker
-                        user={data?.current_user}
+                        user={{
+                            ...data.current_user,
+                            // Override with local state if available for instant feedback
+                            avatar_id: avatarId || data.current_user.avatar_id,
+                            handle: handle || data.current_user.handle,
+                            status: status || data.current_user.status
+                        }}
                         onClick={handleUserClick}
                     />
                 )}

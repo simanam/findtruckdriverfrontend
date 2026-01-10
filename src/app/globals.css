@@ -18,8 +18,8 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  /* Prevent scroll on map app */
+  margin: 0;
+  padding: 0;
 }
 
 body {

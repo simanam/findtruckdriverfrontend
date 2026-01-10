@@ -1,6 +1,6 @@
 "use client";
 
-import { Map as MapIcon, User, Settings, LogOut, Check } from "lucide-react";
+import { Map as MapIcon, User, Settings, LogOut, Check, Menu, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
@@ -12,9 +12,9 @@ import { useDriverAction } from "@/hooks/useDriverAction";
 
 interface NavbarProps {
     className?: string;
+    onJoinClick?: () => void;
 }
-
-export function Navbar({ className }: NavbarProps) {
+export function Navbar({ className, onJoinClick }: NavbarProps) {
     const { avatarId, handle, reset, setAvatarId, setStatus, setHandle, facilityName } = useOnboardingStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
@@ -85,7 +85,7 @@ export function Navbar({ className }: NavbarProps) {
                                 <div className="relative w-8 h-8">
                                     <div className="w-full h-full rounded-full bg-slate-800 overflow-hidden ring-2 ring-sky-500/50">
                                         <img
-                                            src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${avatarId}`}
+                                            src={avatarId?.startsWith('http') ? avatarId : `https://api.dicebear.com/9.x/avataaars/svg?seed=${avatarId}`}
                                             alt="Profile"
                                             className="w-full h-full object-cover"
                                         />
@@ -102,7 +102,7 @@ export function Navbar({ className }: NavbarProps) {
                                 </div>
                             </button>
 
-                            {/* Dropdown Menu */}
+                            {/* Dropdown Menu (Logged In) */}
                             {isMenuOpen && (
                                 <div className="absolute right-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
 
@@ -144,16 +144,24 @@ export function Navbar({ className }: NavbarProps) {
                                             onClick={() => setIsMenuOpen(false)}
                                             className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                                         >
+                                            <MapIcon className="w-4 h-4" />
+                                            <span>Back to Map</span>
+                                        </Link>
+                                        <Link
+                                            href="/profile"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                        >
                                             <User className="w-4 h-4" />
                                             <span>Profile</span>
                                         </Link>
                                         <Link
-                                            href="/settings"
+                                            href="/about"
                                             onClick={() => setIsMenuOpen(false)}
                                             className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                                         >
-                                            <Settings className="w-4 h-4" />
-                                            <span>Settings</span>
+                                            <Info className="w-4 h-4" />
+                                            <span>About</span>
                                         </Link>
                                         <div className="h-px bg-slate-700/50 my-1" />
                                         <button
@@ -169,12 +177,66 @@ export function Navbar({ className }: NavbarProps) {
                         </div>
                     ) : (
                         <>
-                            <Link href="/login" className="text-slate-300 hover:text-white font-medium px-4 py-2 transition-colors hidden sm:block">
-                                Login
-                            </Link>
-                            <Link href="/join" className="bg-sky-500 hover:bg-sky-400 text-white font-semibold px-5 py-2 rounded-full shadow-lg shadow-sky-500/20 transition-all active:scale-95">
-                                Join the Map
-                            </Link>
+                            {/* Desktop Links */}
+                            <div className="hidden md:flex items-center gap-4">
+                                <Link href="/about" className="text-slate-300 hover:text-white font-medium text-sm transition-colors">
+                                    About
+                                </Link>
+                                <Link href="/login" className="text-slate-300 hover:text-white font-medium text-sm transition-colors">
+                                    Login
+                                </Link>
+                            </div>
+
+                            {/* Mobile Hamburger / Actions */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={(e) => {
+                                        if (onJoinClick) {
+                                            e.preventDefault();
+                                            onJoinClick();
+                                        } else {
+                                            router.push('/join');
+                                        }
+                                    }}
+                                    className="bg-sky-500 hover:bg-sky-400 text-white font-semibold px-4 py-2 text-sm md:px-5 md:py-2 rounded-full shadow-lg shadow-sky-500/20 transition-all active:scale-95"
+                                >
+                                    Join <span className="hidden sm:inline">the Map</span>
+                                </button>
+
+                                {/* Mobile Menu Toggle */}
+                                <div className="md:hidden relative">
+                                    <button
+                                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                        className="p-2 bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-700/50 text-slate-300 pointer-events-auto"
+                                    >
+                                        <Menu className="w-5 h-5" />
+                                    </button>
+
+                                    {/* Mobile Dropdown */}
+                                    {isMenuOpen && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-top-right z-50">
+                                            <div className="p-1">
+                                                <Link
+                                                    href="/about"
+                                                    onClick={() => setIsMenuOpen(false)}
+                                                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                                >
+                                                    <MapIcon className="w-4 h-4" />
+                                                    <span>About</span>
+                                                </Link>
+                                                <Link
+                                                    href="/login"
+                                                    onClick={() => setIsMenuOpen(false)}
+                                                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                                >
+                                                    <User className="w-4 h-4" />
+                                                    <span>Login</span>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>

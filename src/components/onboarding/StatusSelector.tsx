@@ -4,7 +4,11 @@ import { useOnboardingStore, type DriverStatus } from "@/stores/onboardingStore"
 import { Truck, Activity, ParkingSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function StatusSelector() {
+interface StatusSelectorProps {
+    triggerAnimation?: boolean;
+}
+
+export function StatusSelector({ triggerAnimation }: StatusSelectorProps) {
     const { status, setStatus, setStep } = useOnboardingStore();
 
     // Auto-advance after a short delay for smoother UX? 
@@ -49,8 +53,13 @@ export function StatusSelector() {
         <div className="flex flex-col items-center gap-4 animate-in slide-in-from-bottom-10 fade-in duration-500">
 
             {/* Floating Label Badge */}
-            <div className="bg-slate-900/90 backdrop-blur-md px-6 py-2 rounded-full border border-slate-700 shadow-xl mb-2">
-                <span className="text-slate-200 font-medium">What's your status?</span>
+            <div className={cn(
+                "bg-slate-900/90 backdrop-blur-md px-6 py-2 rounded-full border shadow-xl mb-2 transition-all duration-300",
+                triggerAnimation
+                    ? "border-sky-400 shadow-[0_0_30px_-5px_rgba(56,189,248,0.6)] ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-900 scale-110 text-white"
+                    : "border-slate-700 text-slate-200"
+            )}>
+                <span className="font-medium">What's your status?</span>
             </div>
 
             {/* Horizontal Floating Bar */}
