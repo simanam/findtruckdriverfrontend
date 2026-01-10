@@ -128,7 +128,8 @@ class ApiClient {
                     longitude: number;
                     facility_name: string | null;
                 };
-                follow_up_question: any | null; // Typed loosely for now, or define interface
+                follow_up_question: any | null;
+                weather_info: any | null; // Added for dual questions
                 message: string;
             }>('/drivers/me/status', {
                 method: 'POST',
@@ -156,7 +157,7 @@ class ApiClient {
 
     followUps = {
         respond: (data: { status_update_id: string; response_value: string; response_text?: string }) =>
-            this.request<{ success: boolean; message: string }>('/follow-ups/respond', {
+            this.request<{ success: boolean; message: string; status_corrected?: boolean; new_status?: string }>('/follow-ups/respond', {
                 method: 'POST',
                 body: JSON.stringify(data)
             }),
@@ -191,7 +192,22 @@ class ApiClient {
             return this.request<{ stats: any }>(`/map/stats?${query}`);
         },
 
-        getGlobalStats: () => this.request<any>('/map/stats/global')
+        getGlobalStats: () => this.request<any>('/map/stats/global'),
+
+        getWeather: (params: { latitude: number; longitude: number }) => {
+            const query = new URLSearchParams(params as any).toString();
+            return this.request<{
+                available: boolean;
+                temperature_f?: number;
+                temperature_c?: number;
+                condition?: string;
+                emoji?: string;
+                location?: string;
+                city?: string;
+                state?: string;
+                message?: string;
+            }>(`/map/weather?${query}`);
+        }
     };
 }
 

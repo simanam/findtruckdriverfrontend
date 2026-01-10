@@ -45,10 +45,7 @@ export default function MapPage() {
 
     return (
         <main className="relative w-full h-screen overflow-hidden">
-            {/* Local Stats Only - Global Navbar handles the rest */}
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-full max-w-fit px-4">
-                <LiveStatsBar />
-            </div>
+
 
             <LocationManager />
             <FollowUpModal />

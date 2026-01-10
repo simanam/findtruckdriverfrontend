@@ -14,31 +14,54 @@ export interface FollowUpQuestion {
     options: FollowUpOption[];
     skippable: boolean;
     auto_dismiss_seconds?: number;
+    weather_event?: string;
+    weather_emoji?: string;
 }
 
 interface FollowUpState {
     isOpen: boolean;
     statusUpdateId: string | null;
-    question: FollowUpQuestion | null;
+    question: FollowUpQuestion | null; // The currently active question
+    queue: FollowUpQuestion[]; // Future questions
 
-    open: (question: FollowUpQuestion, statusUpdateId: string) => void;
+    open: (questions: FollowUpQuestion | FollowUpQuestion[], statusUpdateId: string) => void;
     close: () => void;
 }
 
-export const useFollowUpStore = create<FollowUpState>((set) => ({
+export const useFollowUpStore = create<FollowUpState>((set, get) => ({
     isOpen: false,
     statusUpdateId: null,
     question: null,
+    queue: [],
 
-    open: (question, statusUpdateId) => set({
-        isOpen: true,
-        question,
-        statusUpdateId
-    }),
+    open: (questions, statusUpdateId) => {
+        const list = Array.isArray(questions) ? questions : [questions];
+        if (list.length === 0) return;
 
-    close: () => set({
-        isOpen: false,
-        question: null,
-        statusUpdateId: null
-    }),
+        set({
+            isOpen: true,
+            statusUpdateId,
+            question: list[0],
+            queue: list.slice(1)
+        });
+    },
+
+    close: () => {
+        const { queue } = get();
+        if (queue.length > 0) {
+            // Next question
+            set({
+                question: queue[0],
+                queue: queue.slice(1)
+            });
+        } else {
+            // All done
+            set({
+                isOpen: false,
+                question: null,
+                queue: [],
+                statusUpdateId: null
+            });
+        }
+    },
 }));

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useOnboardingStore, DriverStatus } from "@/stores/onboardingStore";
+import { useFollowUpStore } from "@/stores/followUpStore";
 import { api } from "@/lib/api";
 import { ConfirmationToast, ToastData } from "@/components/ui/ConfirmationToast";
 import { MapPin, Truck, Activity, ParkingSquare, Loader2, Check } from "lucide-react";
@@ -66,13 +67,7 @@ export function StatusControl() {
 
         setIsUpdating(true);
         try {
-            // Update status (backend usually updates location too if we send it, but the simple endpoint might just take status)
-            // Let's assume updateStatus handles it or we need to check specs. 
-            // src/lib/api.ts impl: updateStatus only sends { status }. 
-            // Ideally we should send location too. 
-            // For now, let's call updateStatus then checkIn to fail-safe, or just updateStatus if backend handles it.
-
-            await api.drivers.updateStatus(newStatus);
+            const res = await api.drivers.updateStatus(newStatus);
             setStatus(newStatus);
 
             setToast({
@@ -81,6 +76,16 @@ export function StatusControl() {
                 message: `${statusConfig[newStatus].emoji} Now ${statusConfig[newStatus].label}`,
                 subtext: "Broadcasting to other drivers..."
             });
+
+            // Handle Dual Questions (Weather + Primary)
+            const questions = [];
+            if (res.weather_info) questions.push(res.weather_info);
+            if (res.follow_up_question) questions.push(res.follow_up_question);
+
+            if (questions.length > 0) {
+                const { open } = useFollowUpStore.getState();
+                open(questions, res.status_update_id);
+            }
 
             // Trigger location update too to ensure map placement is fresh
             handleCheckIn();
@@ -141,6 +146,41 @@ export function StatusControl() {
                     >
                         {isUpdating ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : <MapPin className="w-5 h-5 text-sky-400" />}
                         <span>{isUpdating ? "Updating..." : "Check In"}</span>
+                    </button>
+
+                    {/* DEV: Test Weather Button */}
+                    <button
+                        onClick={() => {
+                            const { open } = useFollowUpStore.getState();
+                            open([
+                                {
+                                    question_type: 'weather_alert',
+                                    text: '⛈️ Severe Thunderstorm Warning',
+                                    subtext: 'Damaging winds and hail possible. Seek shelter immediately.',
+                                    weather_event: 'Severe Thunderstorm',
+                                    weather_emoji: '⛈️',
+                                    skippable: true,
+                                    options: [
+                                        { emoji: '🌩️', label: "I'm Safe", value: 'safe' },
+                                        { emoji: '⚠️', label: "Pulling Over", value: 'stopping' }
+                                    ]
+                                },
+                                {
+                                    question_type: 'parking_spot_entry',
+                                    text: 'How is the parking here?',
+                                    subtext: 'We noticed you stopped',
+                                    skippable: true,
+                                    options: [
+                                        { emoji: '🤩', label: "Great", value: 'great' },
+                                        { emoji: '😐', label: "Okay", value: 'okay' },
+                                        { emoji: '😫', label: "Crowded", value: 'bad' }
+                                    ]
+                                }
+                            ], 'test-id');
+                        }}
+                        className="w-full text-xs text-slate-500 hover:text-slate-300 py-2 border border-slate-800 rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                        ⚡ Test Dual Questions
                     </button>
 
                 </div>

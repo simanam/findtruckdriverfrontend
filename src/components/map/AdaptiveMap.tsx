@@ -11,7 +11,9 @@ import { FacilityCardLayer } from './layers/FacilityCardLayer';
 import { DriverLayer } from './layers/DriverLayer';
 import { CurrentUserMarker } from './markers/CurrentUserMarker';
 import { cn } from '@/lib/utils';
-import { Loader2, Crosshair } from 'lucide-react';
+import { Crosshair, Loader2 } from 'lucide-react';
+import { WeatherStatsBar } from './WeatherStatsBar';
+import { LiveStatsBar } from '@/components/stats/LiveStatsBar';
 import { MapProvider } from './MapContext';
 import { useOnboardingStore, DriverStatus } from '@/stores/onboardingStore';
 import { api } from '@/lib/api';
@@ -211,10 +213,7 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
             {/* --- HUD CONTROLS --- */}
 
             {/* View Indicator */}
-            <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 text-slate-400 text-xs px-3 py-1.5 rounded-full uppercase tracking-widest font-bold shadow-lg z-10 flex items-center gap-2 pointer-events-none">
-                <span className={cn("w-2 h-2 rounded-full", isLoading ? "bg-yellow-400 animate-pulse" : "bg-emerald-500")} />
-                {viewType} VIEW
-            </div>
+
 
             {/* Find Me Button */}
             <button
@@ -225,6 +224,12 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
                 <Crosshair className="w-5 h-5 group-hover:rotate-90 transition-transform" />
                 <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap">Find Me</span>
             </button>
+
+            {/* Top Center Stats Stack */}
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 w-full max-w-fit px-4 flex flex-col items-center">
+                <LiveStatsBar />
+                <WeatherStatsBar latitude={viewport.latitude} longitude={viewport.longitude} />
+            </div>
         </div>
     );
 }
