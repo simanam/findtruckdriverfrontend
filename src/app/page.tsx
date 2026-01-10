@@ -45,7 +45,7 @@ export default function Home() {
   };
 
   return (
-    <main className="relative w-full h-screen overflow-hidden">
+    <main className="relative w-full min-h-dvh flex flex-col">
       {/* 1. Header Layer */}
       <Navbar />
 
@@ -56,32 +56,34 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2.5 Hero Layer */}
-      <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 text-center w-full max-w-3xl px-4 pointer-events-none select-none">
-        <h1 className="text-5xl md:text-7xl font-black text-white drop-shadow-2xl mb-8 tracking-tighter">
-          Truckers helping <span className="text-sky-400">truckers</span>.
-        </h1>
+      {/* 2.5 Hero Layer - Flex grow to push status selector down */}
+      <div className="flex-1 flex items-center justify-center pt-32 pb-4 px-4">
+        <div className="text-center w-full max-w-3xl pointer-events-none select-none">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white drop-shadow-2xl mb-6 md:mb-8 tracking-tighter">
+            Truckers helping <span className="text-sky-400">truckers</span>.
+          </h1>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-lg md:text-2xl font-bold text-slate-100 drop-shadow-xl opacity-90 my-6 leading-snug">
-          <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100 whitespace-nowrap">Check in.</p>
-          <span className="hidden md:inline text-sky-400">•</span>
-          <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-200 whitespace-nowrap">Share what you see.</p>
-          <span className="hidden md:inline text-sky-400">•</span>
-          <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-300 whitespace-nowrap">See what others share.</p>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-4 text-base sm:text-lg md:text-2xl font-bold text-slate-100 drop-shadow-xl opacity-90 my-4 md:my-6 leading-snug">
+            <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-100 whitespace-nowrap">Check in.</p>
+            <span className="hidden md:inline text-sky-400">•</span>
+            <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-200 whitespace-nowrap">Share what you see.</p>
+            <span className="hidden md:inline text-sky-400">•</span>
+            <p className="animate-in slide-in-from-bottom-4 fade-in duration-700 delay-300 whitespace-nowrap">See what others share.</p>
+          </div>
+
+          {/* Small single line subtext */}
+          <p className="text-xs sm:text-sm md:text-lg font-medium text-slate-300 drop-shadow-md opacity-80 animate-in slide-in-from-bottom-2 fade-in duration-700 delay-500">
+            Parking full? • Wait too long? • Spot sketchy?
+          </p>
         </div>
-
-        {/* Small single line subtext */}
-        <p className="text-sm md:text-lg font-medium text-slate-300 drop-shadow-md opacity-80 whitespace-nowrap animate-in slide-in-from-bottom-2 fade-in duration-700 delay-500">
-          Parking full? &bull; Wait too long? &bull; Spot sketchy?
-        </p>
       </div>
 
-      {/* 3. Status Selector (Bottom Center - Primary Action) */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 w-full flex justify-center pointer-events-auto" onClickCapture={handleStatusSelect}>
+      {/* 3. Status Selector (Bottom - Primary Action with safe area) */}
+      <div className="w-full flex justify-center pointer-events-auto z-50 pb-6 mb-[env(safe-area-inset-bottom)]" onClickCapture={handleStatusSelect}>
         <StatusSelector />
       </div>
 
-      {/* 4. Map Layer (Now handled Globally) */}
+      {/* 4. Map Layer (Now handled Globally via layout) */}
     </main>
   );
 }
