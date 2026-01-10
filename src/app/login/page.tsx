@@ -102,14 +102,14 @@ export default function LoginPage() {
                             type="text"
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
-                            placeholder="12345678"
+                            placeholder="123456"
                             className="w-full bg-slate-900 border border-slate-700/50 text-white text-center text-2xl tracking-widest px-4 py-3 rounded-xl outline-none focus:border-sky-500 transition-colors uppercase"
-                            maxLength={8}
+                            maxLength={6}
                         />
 
                         <button
                             onClick={handleVerify}
-                            disabled={loading || otp.length < 8}
+                            disabled={loading || otp.length < 6}
                             className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
