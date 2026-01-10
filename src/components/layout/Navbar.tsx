@@ -56,8 +56,12 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
         )}>
             <div className="flex items-center justify-between">
                 {/* Logo */}
-                <Link href="/" className="pointer-events-auto flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700/50 shadow-lg text-slate-100 hover:scale-105 transition-transform">
-                    <MapIcon className="w-5 h-5 text-sky-400" />
+                <Link href="/" className="pointer-events-auto hover:scale-105 transition-transform">
+                    <img
+                        src="/icons/FTD_LOGO.png"
+                        alt="Findtruckdriver"
+                        className="w-10 h-10"
+                    />
                 </Link>
 
                 {/* Right Actions */}

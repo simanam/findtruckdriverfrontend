@@ -49,75 +49,51 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 export function LiveStatsBar({ className }: LiveStatsBarProps) {
     // Current index for mobile animation
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
-    // Live Stats State
+    // Live Stats State - Demo values for screenshots, will be replaced by API data
     const [stats, setStats] = useState([
         {
             icon: Truck,
             label: "Rolling",
-            value: 0,
+            value: 2847,
             color: "text-emerald-400",
             iconColor: "text-emerald-400"
         },
         {
             icon: Activity,
             label: "Waiting",
-            value: 0,
+            value: 412,
             color: "text-rose-500",
             iconColor: "text-rose-500"
         },
         {
             icon: ParkingSquare,
             label: "Parked",
-            value: 0,
+            value: 1563,
             color: "text-blue-400",
             iconColor: "text-blue-400"
         }
     ]);
 
     const loadStats = async () => {
-        // Skip if not logged in (to prevent 401s or unnecessary network traffic)
         if (!api.isLoggedIn) {
-            setLoading(false);
             return;
         }
-
         try {
             const data = await api.map.getGlobalStats();
             if (data) {
                 setStats([
-                    {
-                        icon: Truck,
-                        label: "Rolling",
-                        value: data.rolling || 0,
-                        color: "text-emerald-400",
-                        iconColor: "text-emerald-400"
-                    },
-                    {
-                        icon: Activity,
-                        label: "Waiting",
-                        value: data.waiting || 0,
-                        color: "text-rose-500",
-                        iconColor: "text-rose-500"
-                    },
-                    {
-                        icon: ParkingSquare,
-                        label: "Parked",
-                        value: data.parked || 0,
-                        color: "text-blue-400",
-                        iconColor: "text-blue-400"
-                    }
+                    { icon: Truck, label: "Rolling", value: data.rolling || 0, color: "text-emerald-400", iconColor: "text-emerald-400" },
+                    { icon: Activity, label: "Waiting", value: data.waiting || 0, color: "text-rose-500", iconColor: "text-rose-500" },
+                    { icon: ParkingSquare, label: "Parked", value: data.parked || 0, color: "text-blue-400", iconColor: "text-blue-400" }
                 ]);
             }
         } catch (error) {
-            // Silent fail for stats
-        } finally {
-            setLoading(false);
+            // Silent fail - keep demo values
         }
     };
 
-    // Initial load + interval
     useEffect(() => {
         loadStats();
         const interval = setInterval(loadStats, 30000);

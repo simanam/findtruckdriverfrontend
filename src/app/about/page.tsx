@@ -1,7 +1,8 @@
 "use client";
 
 import { Navbar } from "@/components/layout/Navbar";
-import { ArrowLeft, Mail, Map, Truck } from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
+import { ArrowLeft, Mail, Map, Truck, Lightbulb, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 export default function AboutPage() {
@@ -163,24 +164,56 @@ export default function AboutPage() {
                         </div>
                     </section>
 
+                    {/* Feature Request CTA */}
+                    <section className="bg-amber-900/20 p-8 rounded-3xl border border-amber-500/20">
+                        <div className="flex items-start gap-4">
+                            <Lightbulb className="w-8 h-8 text-amber-400 shrink-0 mt-1" />
+                            <div>
+                                <h2 className="text-2xl font-bold text-white mb-2">Got an Idea?</h2>
+                                <p className="text-slate-300 mb-4">
+                                    This app is built by listening to drivers. If you have a feature request, bug to report,
+                                    or just want to tell us what sucks—we want to hear it.
+                                </p>
+                                <Link
+                                    href="/feedback"
+                                    className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition-colors"
+                                >
+                                    <Lightbulb className="w-5 h-5" />
+                                    Submit Feedback
+                                </Link>
+                            </div>
+                        </div>
+                    </section>
+
                     {/* Contact */}
-                    <section className="bg-gradient-to-br from-sky-900/20 to-slate-900/50 p-8 rounded-3xl border border-sky-500/20 text-center">
+                    <section className="bg-linear-to-br from-sky-900/20 to-slate-900/50 p-8 rounded-3xl border border-sky-500/20 text-center">
                         <Mail className="w-10 h-10 text-sky-400 mx-auto mb-4" />
                         <h2 className="text-2xl font-bold text-white mb-2">Get In Touch</h2>
                         <p className="text-slate-400 mb-6 max-w-lg mx-auto">
-                            Got feedback? Found a bug? Have an idea? This thing only gets better if you tell me what sucks.
+                            For support, questions, or business inquiries, reach out to our team.
                         </p>
 
                         <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-slate-300">
-                            {/* Placeholder for email/handle logic if needed dynamic */}
-                            <span className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
-                                Email: support@findtruckdriver.com
-                            </span>
+                            <a
+                                href="mailto:support@logixtecs.com"
+                                className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-700 hover:border-sky-500/50 transition-colors"
+                            >
+                                support@logixtecs.com
+                            </a>
                         </div>
 
                         <div className="mt-8 pt-8 border-t border-slate-800/50">
-                            <p className="text-lg font-medium text-white">Founder</p>
-                            <p className="text-slate-500 text-sm">Former driver. Still one of you.</p>
+                            <p className="text-sm text-slate-500 mb-2">Operated by</p>
+                            <a
+                                href="https://www.logixtecs.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-white font-medium hover:text-sky-400 transition-colors"
+                            >
+                                Logixtecs Solutions LLC
+                                <ExternalLink className="w-4 h-4" />
+                            </a>
+                            <p className="text-slate-500 text-sm mt-2">Built by a former driver. Powered by drivers.</p>
                         </div>
                     </section>
 
@@ -199,6 +232,8 @@ export default function AboutPage() {
 
                 </div>
             </div>
+
+            <Footer />
         </main>
     );
 }

@@ -16,6 +16,7 @@ interface StatusPromptProps {
 
 export function StatusPrompt({ message, suggestedStatus, onClose, onUpdate }: StatusPromptProps) {
     const { updateStatus } = useDriverAction();
+    const [loading, setLoading] = useState<DriverStatus | null>(null);
 
     const handleStatusSelect = async (status: DriverStatus) => {
         setLoading(status);

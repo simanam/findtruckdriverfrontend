@@ -160,7 +160,7 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
             await updateStatus(nextStatus);
         } catch (e: any) {
             console.error("Failed to update status", e);
-            if (e.code === 'PERMISSION_DENIED') {
+            if (e.code === 'PERMISSION_DENIED' || e.message?.includes("Location is required")) {
                 alert("📍 Maps Need Location\n\nTo update your status, we need to know where you are. We don't want your data—we just want to put your dot on the map.\n\n🛡️ Privacy:\n• We only check location on updates\n• We only show your approximate area when parked\n\nPlease check your browser settings to enable location.");
             }
         }

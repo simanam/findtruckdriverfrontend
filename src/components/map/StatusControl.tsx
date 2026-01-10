@@ -96,7 +96,8 @@ export function StatusControl() {
 
         } catch (e: any) {
             console.error("Status update failed", e);
-            if (e.code === 'PERMISSION_DENIED') {
+            // Handle both client-side permission denied OR backend requirement error
+            if (e.code === 'PERMISSION_DENIED' || e.message?.includes("Location is required")) {
                 alert("📍 Maps Need Location\n\nTo check in, we need to know where you are. We don't want your data—we just want to put your dot on the map.\n\n🛡️ Privacy:\n• We only check location when you tap 'Check In'\n• We only show your approximate area when you're parked\n\nPlease check your browser settings to enable location.");
             } else {
                 alert("⚠️ Location Error\n\nCould not fetch your location. Please try again.");
