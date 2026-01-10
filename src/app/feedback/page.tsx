@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ArrowLeft, Lightbulb, Bug, MessageSquare, Send, ExternalLink } from "lucide-react";
+import { ArrowLeft, Lightbulb, Bug, MessageSquare, Send, ExternalLink, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -14,18 +14,45 @@ export default function FeedbackPage() {
     const [description, setDescription] = useState("");
     const [email, setEmail] = useState("");
     const [submitted, setSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const getCategoryName = (type: FeedbackType) => {
+        switch (type) {
+            case "feature": return "Feature Request";
+            case "bug": return "Bug Report";
+            case "other": return "General Feedback";
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSubmitting(true);
+        setError(null);
 
-        // Create mailto link with pre-filled content
-        const subject = encodeURIComponent(`[${feedbackType.toUpperCase()}] ${title}`);
-        const body = encodeURIComponent(
-            `Type: ${feedbackType}\n\nTitle: ${title}\n\nDescription:\n${description}\n\n---\nFrom: ${email || "Not provided"}\nApp: Findtruckdriver`
-        );
+        try {
+            const response = await fetch("/api/feedback", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email,
+                    category: getCategoryName(feedbackType),
+                    message: `${title}\n\n${description}`,
+                }),
+            });
 
-        window.location.href = `mailto:support@logixtecs.com?subject=${subject}&body=${body}`;
-        setSubmitted(true);
+            if (!response.ok) {
+                throw new Error("Failed to submit feedback");
+            }
+
+            setSubmitted(true);
+        } catch (err) {
+            setError("Failed to submit feedback. Please try again or email us directly.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const feedbackTypes = [
@@ -87,8 +114,8 @@ export default function FeedbackPage() {
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-4">Thanks for your feedback!</h2>
                         <p className="text-slate-300 mb-6">
-                            Your email client should have opened with your feedback pre-filled.
-                            Just hit send and we'll take it from there.
+                            We've received your feedback and will review it shortly.
+                            Thanks for helping us make Findtruckdriver better!
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button
@@ -96,6 +123,8 @@ export default function FeedbackPage() {
                                     setSubmitted(false);
                                     setTitle("");
                                     setDescription("");
+                                    setEmail("");
+                                    setError(null);
                                 }}
                                 className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-colors"
                             >
@@ -199,13 +228,30 @@ export default function FeedbackPage() {
                                 </p>
                             </div>
 
+                            {/* Error Message */}
+                            {error && (
+                                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             {/* Submit */}
                             <button
                                 type="submit"
-                                className="w-full py-4 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                                disabled={isSubmitting}
+                                className="w-full py-4 bg-sky-500 hover:bg-sky-400 disabled:bg-sky-500/50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                             >
-                                <Send className="w-5 h-5" />
-                                Send Feedback
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Submitting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="w-5 h-5" />
+                                        Send Feedback
+                                    </>
+                                )}
                             </button>
                         </form>
 
