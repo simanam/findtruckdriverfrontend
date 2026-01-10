@@ -242,7 +242,7 @@ export function AvatarBuilder({ initialAvatarId, onSave, mode = 'onboarding' }: 
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pointer-events-auto">
             {/* Main Preview & Primary Actions */}
             <div className="flex flex-col items-center gap-4 py-1">
 
