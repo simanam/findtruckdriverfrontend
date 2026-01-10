@@ -8,12 +8,14 @@ import { NationalLayer } from './layers/NationalLayer';
 import { ClusterLayer } from './layers/ClusterLayer';
 import { FacilityLayer } from './layers/FacilityLayer';
 import { FacilityCardLayer } from './layers/FacilityCardLayer';
+import { DriverLayer } from './layers/DriverLayer';
 import { CurrentUserMarker } from './markers/CurrentUserMarker';
 import { cn } from '@/lib/utils';
 import { Loader2, Crosshair } from 'lucide-react';
 import { MapProvider } from './MapContext';
 import { useOnboardingStore, DriverStatus } from '@/stores/onboardingStore';
 import { api } from '@/lib/api';
+import { useDriverAction } from '@/hooks/useDriverAction';
 
 // Token setup
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -25,7 +27,8 @@ interface AdaptiveMapProps {
 export function AdaptiveMap({ className }: AdaptiveMapProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
-    const { status, setStatus } = useOnboardingStore();
+    const { status } = useOnboardingStore();
+    const { updateStatus } = useDriverAction();
 
     // Viewport state to drive logic
     const [viewport, setViewport] = useState({
@@ -63,7 +66,8 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
         // Add controls
         map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-        map.on('move', () => {
+        // Update viewport only when movement ends to reduce re-renders and API calls
+        map.on('moveend', () => {
             setViewport({
                 longitude: map.getCenter().lng,
                 latitude: map.getCenter().lat,
@@ -91,10 +95,10 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
 
 
     // Fly to user's location
-    const flyToUser = useCallback(() => {
+    const flyToUser = useCallback((zoomLevel?: number) => {
         if (data?.current_user?.location && mapInstance) {
-            // Different zoom targets based on current state
-            const targetZoom = viewType === 'local' ? 14 : 12;
+            // Default to street level (14) if no zoom provided (standard "Find Me" behavior)
+            const targetZoom = zoomLevel || 14;
 
             mapInstance.flyTo({
                 center: data.current_user.location,
@@ -103,28 +107,59 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
                 essential: true
             });
         }
-    }, [data?.current_user, viewType, mapInstance]);
+    }, [data?.current_user, mapInstance]);
+
+    // Initial Fly-To (User or Geolocation)
+    const hasFlown = useRef(false);
+    useEffect(() => {
+        // 1. If we have a logged-in user with location, fly there
+        if (data?.current_user?.location && mapInstance && !hasFlown.current) {
+            flyToUser(7);
+            hasFlown.current = true;
+            return;
+        }
+
+        // 2. If NO logged-in user, try to get geolocation to center map relevantly
+        // This ensures "ghost" reuse of previous sessions or just better UX
+        if (!data?.current_user && mapInstance && !hasFlown.current) {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+
+                        mapInstance.flyTo({
+                            center: [longitude, latitude],
+                            zoom: 7, // State level view
+                            duration: 2000,
+                            essential: true
+                        });
+                        hasFlown.current = true;
+                    },
+                    (error) => {
+                        console.log("Geolocation denied or error, staying at default center", error);
+                        // Optional: we could fly to a default useful spot here if needed
+                    }
+                );
+            }
+        }
+    }, [data?.current_user, mapInstance, flyToUser]);
 
     // Handle User Click - Toggle Status
     const handleUserClick = useCallback(async () => {
-        flyToUser();
+        flyToUser(14);
 
         // Cycle status: rolling -> waiting -> parked -> rolling
         const nextStatus: DriverStatus =
             status === 'rolling' ? 'waiting' :
                 status === 'waiting' ? 'parked' : 'rolling';
 
-        // Optimistic update
-        setStatus(nextStatus);
-
-        // API update
+        // API update with follow-up support
         try {
-            await api.drivers.updateStatus(nextStatus);
+            await updateStatus(nextStatus);
         } catch (e) {
             console.error("Failed to update status", e);
-            // Revert? setStatus(prevStatus) - skipping for MVP
         }
-    }, [status, setStatus, flyToUser]);
+    }, [status, updateStatus, flyToUser]);
 
     // Check if user is visible in current aggregates
     const userInCluster = data?.clusters?.some(c => c.includes_current_user);
@@ -144,19 +179,28 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
                 )}
 
                 {viewType === 'state' && (
-                    <ClusterLayer clusters={data?.clusters} />
+                    <>
+                        <ClusterLayer clusters={data?.clusters} />
+                        <DriverLayer drivers={data?.drivers} />
+                    </>
                 )}
 
                 {viewType === 'metro' && (
-                    <FacilityLayer facilities={data?.facilities} />
+                    <>
+                        <FacilityLayer facilities={data?.facilities} />
+                        <DriverLayer drivers={data?.drivers} />
+                    </>
                 )}
 
                 {viewType === 'local' && (
-                    <FacilityCardLayer facilities={data?.facilities} />
+                    <>
+                        <FacilityCardLayer facilities={data?.facilities} />
+                        <DriverLayer drivers={data?.drivers} />
+                    </>
                 )}
 
                 {/* --- USER MARKER --- */}
-                {showFloatingUser && data.current_user && (
+                {showFloatingUser && data.current_user && data.current_user.location && (
                     <CurrentUserMarker
                         user={data?.current_user}
                         onClick={handleUserClick}
@@ -174,7 +218,7 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
 
             {/* Find Me Button */}
             <button
-                onClick={flyToUser}
+                onClick={() => flyToUser(14)}
                 className="absolute bottom-28 right-3 bg-yellow-400 text-black p-3 rounded-full shadow-lg hover:scale-110 transition-transform z-10 font-bold flex items-center gap-2 group"
                 aria-label="Find Me"
             >

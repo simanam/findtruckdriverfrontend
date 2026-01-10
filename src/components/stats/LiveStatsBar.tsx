@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Activity, Truck, ParkingSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 interface LiveStatsBarProps {
     className?: string;
@@ -48,42 +49,78 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 export function LiveStatsBar({ className }: LiveStatsBarProps) {
     // Current index for mobile animation
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     // Live Stats State
     const [stats, setStats] = useState([
         {
             icon: Truck,
             label: "Rolling",
-            value: 1247,
+            value: 0,
             color: "text-emerald-400",
             iconColor: "text-emerald-400"
         },
         {
             icon: Activity,
             label: "Waiting",
-            value: 342,
+            value: 0,
             color: "text-rose-500",
             iconColor: "text-rose-500"
         },
         {
             icon: ParkingSquare,
             label: "Parked",
-            value: 891,
+            value: 0,
             color: "text-blue-400",
             iconColor: "text-blue-400"
         }
     ]);
 
-    // Simulate Live Updates
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setStats(prevStats => prevStats.map(stat => ({
-                ...stat,
-                // Randomly add/subtract 1-3 to simulate live activity
-                value: Math.max(0, stat.value + Math.floor(Math.random() * 7) - 3)
-            })));
-        }, 2000); // Update every 2 seconds
+    const loadStats = async () => {
+        // Skip if not logged in (to prevent 401s or unnecessary network traffic)
+        if (!api.isLoggedIn) {
+            setLoading(false);
+            return;
+        }
 
+        try {
+            const data = await api.map.getGlobalStats();
+            if (data) {
+                setStats([
+                    {
+                        icon: Truck,
+                        label: "Rolling",
+                        value: data.rolling || 0,
+                        color: "text-emerald-400",
+                        iconColor: "text-emerald-400"
+                    },
+                    {
+                        icon: Activity,
+                        label: "Waiting",
+                        value: data.waiting || 0,
+                        color: "text-rose-500",
+                        iconColor: "text-rose-500"
+                    },
+                    {
+                        icon: ParkingSquare,
+                        label: "Parked",
+                        value: data.parked || 0,
+                        color: "text-blue-400",
+                        iconColor: "text-blue-400"
+                    }
+                ]);
+            }
+        } catch (error) {
+            // Silent fail for stats
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial load + interval
+    useEffect(() => {
+        loadStats();
+        const interval = setInterval(loadStats, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -93,9 +130,28 @@ export function LiveStatsBar({ className }: LiveStatsBarProps) {
             setCurrentIndex((prev) => (prev + 1) % stats.length);
         }, 3000); // 3 seconds per stat
         return () => clearInterval(interval);
-    }, []);
+    }, [stats.length]);
 
     const currentStat = stats[currentIndex];
+
+    // Check if total drivers is 0 (or all values 0)
+    const totalDrivers = stats.reduce((acc, curr) => acc + curr.value, 0);
+
+    if (loading) {
+        return (
+            <div className={cn("flex items-center justify-center px-6 py-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 min-w-[160px]", className)}>
+                <span className="text-slate-400 text-sm animate-pulse">Loading stats...</span>
+            </div>
+        );
+    }
+
+    if (totalDrivers === 0) {
+        return (
+            <div className={cn("flex items-center justify-center px-6 py-3 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 min-w-[160px] animate-in fade-in slide-in-from-top-4", className)}>
+                <span className="text-slate-300 text-sm font-medium">🚀 Be the first driver!</span>
+            </div>
+        );
+    }
 
     return (
         <div

@@ -30,6 +30,10 @@ class ApiClient {
         }
     }
 
+    get isLoggedIn(): boolean {
+        return !!this.token;
+    }
+
     private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         const url = `${API_BASE_URL}${endpoint}`;
         const headers: HeadersInit = {
@@ -41,10 +45,21 @@ class ApiClient {
             (headers as any)['Authorization'] = `Bearer ${this.token}`;
         }
 
-        const response = await fetch(url, {
-            ...options,
-            headers,
-        });
+        let response;
+        try {
+            response = await fetch(url, {
+                ...options,
+                headers,
+            });
+        } catch (error) {
+            // Log as warning to avoid cluttering console in dev (e.g. backend down)
+            console.warn(`[ApiClient] Network request failed for ${endpoint}`);
+            throw {
+                status: 0,
+                message: 'Network error. Please check your connection or backend server.',
+                data: null
+            };
+        }
 
         const data = await response.json().catch(() => ({}));
 
@@ -104,22 +119,59 @@ class ApiClient {
 
         getMe: () => this.request<any>('/drivers/me'),
 
-        updateStatus: (status: 'rolling' | 'waiting' | 'parked') =>
-            this.request('/drivers/me/status', {
+        updateStatus: (status: 'rolling' | 'waiting' | 'parked', location?: { latitude: number; longitude: number }) =>
+            this.request<{
+                status_update_id: string;
+                status: string;
+                location?: {
+                    latitude: number;
+                    longitude: number;
+                    facility_name: string | null;
+                };
+                follow_up_question: any | null; // Typed loosely for now, or define interface
+                message: string;
+            }>('/drivers/me/status', {
                 method: 'POST',
-                body: JSON.stringify({ status }),
+                body: JSON.stringify({ status, ...location }),
             }),
 
-        updateLocation: (data: { latitude: number; longitude: number; heading?: number; speed?: number }) =>
+        updateLocation: (data: { latitude: number; longitude: number; heading?: number; speed?: number; accuracy?: number }) =>
             this.request('/locations/check-in', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+
+        appOpen: (data: { latitude: number; longitude: number; heading?: number; speed?: number; accuracy?: number }) =>
+            this.request<{
+                action: "prompt_status" | "none";
+                reason: string | null;
+                message: string;
+                current_status: string;
+                suggested_status?: string;
+            }>('/locations/app-open', {
                 method: 'POST',
                 body: JSON.stringify(data)
             })
     };
 
+    followUps = {
+        respond: (data: { status_update_id: string; response_value: string; response_text?: string }) =>
+            this.request<{ success: boolean; message: string }>('/follow-ups/respond', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+
+        getHistory: (limit: number = 50) =>
+            this.request<{ count: number; history: any[] }>(`/follow-ups/history?limit=${limit}`)
+    };
+
+    locations = {
+        getMe: () => this.request<any>('/locations/me')
+    };
+
     // --- Map Data ---
     map = {
-        getDrivers: (params: { latitude: number; longitude: number; radius_miles: number; status_filter?: string }) => {
+        getDrivers: (params: { min_lat: number; max_lat: number; min_lng: number; max_lng: number; status_filter?: string }) => {
             const query = new URLSearchParams(params as any).toString();
             return this.request<{ drivers: any[] }>(`/map/drivers?${query}`);
         },
@@ -137,7 +189,9 @@ class ApiClient {
         getStats: (params: { latitude: number; longitude: number; radius_miles: number }) => {
             const query = new URLSearchParams(params as any).toString();
             return this.request<{ stats: any }>(`/map/stats?${query}`);
-        }
+        },
+
+        getGlobalStats: () => this.request<any>('/map/stats/global')
     };
 }
 

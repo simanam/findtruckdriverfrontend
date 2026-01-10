@@ -2,7 +2,8 @@
 
 
 import { LiveStatsBar } from "@/components/stats/LiveStatsBar";
-
+import { LocationManager } from "@/components/map/LocationManager";
+import { FollowUpModal } from "@/components/map/FollowUpModal";
 import { Menu } from "lucide-react";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { useEffect } from "react";
@@ -48,6 +49,9 @@ export default function MapPage() {
             <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-auto w-full max-w-fit px-4">
                 <LiveStatsBar />
             </div>
+
+            <LocationManager />
+            <FollowUpModal />
 
             {/* Map Layer - Handled Globally */}
         </main>

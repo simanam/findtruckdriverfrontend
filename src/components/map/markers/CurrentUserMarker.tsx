@@ -15,14 +15,15 @@ interface CurrentUserMarkerProps {
 }
 
 export function CurrentUserMarker({ user, onClick }: CurrentUserMarkerProps) {
+    if (!user || !user.location) return null;
 
     return (
         <Marker
             longitude={user.location[0]}
             latitude={user.location[1]}
             anchor="bottom"
-            onClick={(e) => {
-                e.originalEvent.stopPropagation();
+            onClick={(e: any) => {
+                e.stopPropagation();
                 onClick?.();
             }}
         >

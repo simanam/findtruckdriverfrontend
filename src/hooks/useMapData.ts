@@ -19,97 +19,148 @@ export interface MapData {
     corridors?: any[];
     clusters?: any[];
     facilities?: any[];
+    drivers?: any[]; // Drivers for local view
 }
 
 export function useMapData(viewport: { zoom: number; latitude: number; longitude: number }, viewType: ViewType) {
     const [data, setData] = useState<MapData>({ current_user: null });
     const [isLoading, setIsLoading] = useState(false);
-    const { avatarId, status, handle } = useOnboardingStore();
+    const { avatarId, status, handle, lastLocationUpdate } = useOnboardingStore();
 
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                // 1. Get Current User (to show "You" and check inclusions)
+                // 1. Get Current User (Always visible)
                 let currentUser = null;
                 try {
-                    const { driver } = await api.drivers.getMe();
-                    currentUser = driver; // driver object should match shape or need mapping
+                    // Use the enhanced locations/me endpoint as requested
+                    const res = await api.locations.getMe();
+                    if (res && res.latitude && res.longitude) {
+                        currentUser = {
+                            ...res,
+                            location: [res.longitude, res.latitude]
+                        };
+                    }
                 } catch (e) {
-                    // Not logged in or error
-                    // Fallback to local store for optimistic UI if verified logic fails? 
-                    // For now, if getMe fails, we assume no user.
+                    // Fallback to drivers/me if locations/me fails
+                    try {
+                        const driver = await api.drivers.getMe();
+                        // The drivers/me endpoint might return nested driver object or direct
+                        const d = driver.driver || driver;
+                        if (d && d.latitude && d.longitude) {
+                            currentUser = {
+                                ...d,
+                                location: [d.longitude, d.latitude]
+                            };
+                        } else if (d && d.location && Array.isArray(d.location)) {
+                            // Already in array format?
+                            currentUser = d;
+                        }
+                    } catch (err) {
+                        console.warn("Could not fetch current user location", err);
+                    }
                 }
 
                 // 2. Fetch View Data
                 let regions: any[] = [];
                 let clusters: any[] = [];
                 let facilities: any[] = [];
+                let drivers: any[] = [];
 
                 const { latitude, longitude, zoom } = viewport;
-                // Basic radius logic based on zoom (approximate)
-                const radiusCoords = 300 / Math.pow(2, zoom - 4); // rough heuristic
+
+                // Calculate rough bounding box
+                const earthRadius = 3960; // miles
+                const radius_miles = 300 / Math.pow(2, zoom - 4); // Scale radius with zoom
+                const latDelta = (radius_miles / earthRadius) * (180 / Math.PI);
+                const lngDelta = (radius_miles / earthRadius) * (180 / Math.PI) / Math.cos(latitude * Math.PI / 180);
+
+                const bounds = {
+                    min_lat: latitude - latDelta,
+                    max_lat: latitude + latDelta,
+                    min_lng: longitude - lngDelta,
+                    max_lng: longitude + lngDelta,
+                };
 
                 if (viewType === 'national') {
-                    // Fetch stats for regions
-                    // API doesn't strictly have a "getRegions" endpoint, so we might stick to mock 
-                    // OR use getClusters with huge radius?
-                    // Let's stick to mock for national stats for MVP as backend doesn't list /map/regions
-                    regions = [
-                        { geohash: "9q", center: [-119.4, 36.7], counts: { rolling: 800, waiting: 400, parked: 600 }, total: 1800 },
-                        { geohash: "dr", center: [-74.0, 40.7], counts: { rolling: 1200, waiting: 200, parked: 900 }, total: 2300 },
-                        { geohash: "9v", center: [-96.8, 32.7], counts: { rolling: 500, waiting: 100, parked: 300 }, total: 900 },
-                    ];
-                }
-                else if (viewType === 'state') {
-                    const { clusters: apiClusters } = await api.map.getClusters({
-                        latitude, longitude, radius_miles: 200 // broad search
-                    });
+                    // Keep national view empty for now or specific stats logic
+                    regions = [];
+                } else {
+                    // New logic for non-national views:
+                    // 1. Get all drivers in bounds
+                    const driversRes = await api.map.getDrivers(bounds);
+                    let allDrivers = driversRes.drivers || [];
 
-                    // Map API clusters to UI format
-                    clusters = apiClusters.map((c: any) => ({
-                        geohash: c.geohash,
-                        center: [c.longitude, c.latitude],
-                        name: c.location_name || "Cluster",
-                        includes_current_user: c.driver_ids?.includes(currentUser?.driver_id),
-                        hero: c.hero_driver ? { ...c.hero_driver, status: c.hero_driver.status || 'rolling' } : null,
-                        counts: c.status_counts,
-                        total: c.total_drivers,
-                        display_text: `+${c.total_drivers}`,
-                        is_hotspot: c.total_drivers > 50
-                    }));
-                }
-                else if (viewType === 'metro' || viewType === 'local') {
-                    // Fetch Hotspots (Facilities)
-                    const { hotspots } = await api.map.getHotspots({
-                        latitude, longitude, radius_miles: 50
-                    });
+                    // 2. Filter out self
+                    if (currentUser && currentUser.driver_id) {
+                        allDrivers = allDrivers.filter((d: any) => d.driver_id !== currentUser.driver_id);
+                    }
 
-                    // Fetch Individual Drivers? 
-                    // For facility view, we usually show the "Avatar Ring" which implies knowing WHO is there.
-                    // The getHotspots API might need to return `drivers` inside it. 
-                    // If not, we might need to getDrivers and group them manually.
-                    // Assuming getHotspots returns rich data for MVP.
+                    // 3. Decide: Drivers or Clusters?
+                    // If drivers count < 10 or if zoomed in enough (e.g., zoom > 10), show individual drivers.
+                    // Otherwise, show clusters.
+                    const showIndividualDriversThreshold = 10;
+                    const zoomLevelForIndividualDrivers = 10; // Example threshold
 
-                    facilities = hotspots.map((h: any) => ({
-                        id: h.id,
-                        name: h.name,
-                        type: h.type,
-                        location: [h.longitude, h.latitude],
-                        includes_current_user: false, // need backend check
-                        avatar_ring: h.drivers || [], // Assuming backend returns some drivers
-                        counts: { rolling: 0, waiting: h.drivers_waiting, parked: 0 },
-                        total: h.drivers_waiting,
-                        display_text: `+${h.drivers_waiting}`,
-                        is_hotspot: true
-                    }));
+                    if (allDrivers.length < showIndividualDriversThreshold || zoom > zoomLevelForIndividualDrivers) {
+                        // Option 1: Show individual drivers
+                        drivers = allDrivers.map((d: any) => ({
+                            ...d,
+                            location: d.location || { latitude: d.latitude, longitude: d.longitude }
+                        }));
+                    } else {
+                        // Option 2: Too many drivers, fetch clusters
+                        // Note: getClusters uses radius, not bounds. We'll estimate radius.
+                        const { clusters: apiClusters } = await api.map.getClusters({
+                            latitude,
+                            longitude,
+                            radius_miles: radius_miles || 50,
+                            min_drivers: 2
+                        });
+
+                        clusters = apiClusters.map((c: any) => ({
+                            geohash: c.geohash,
+                            center: [c.longitude, c.latitude],
+                            name: c.location_name || "Cluster",
+                            includes_current_user: c.driver_ids?.includes(currentUser?.driver_id),
+                            hero: c.hero_driver ? { ...c.hero_driver, status: c.hero_driver.status || 'rolling' } : null,
+                            counts: c.status_counts,
+                            total: c.total_drivers,
+                            display_text: `+${c.total_drivers}`,
+                            is_hotspot: c.total_drivers > 50
+                        }));
+                    }
+
+                    // Also fetch hotspots if we are in metro/local view for facilities
+                    if (viewType === 'metro' || viewType === 'local') {
+                        const { hotspots } = await api.map.getHotspots({
+                            latitude, longitude, radius_miles: 50
+                        });
+
+                        facilities = hotspots.map((h: any) => ({
+                            id: h.id,
+                            name: h.name,
+                            type: h.type,
+                            location: [h.longitude, h.latitude],
+                            includes_current_user: false,
+                            avatar_ring: h.drivers || [],
+                            counts: { rolling: 0, waiting: h.drivers_waiting, parked: 0 },
+                            total: h.drivers_waiting,
+                            display_text: `+${h.drivers_waiting}`,
+                            is_hotspot: true
+                        }));
+                    }
                 }
 
                 setData({
                     current_user: currentUser,
                     regions,
                     clusters,
-                    facilities
+                    facilities,
+                    // Add raw drivers to the data object
+                    // Note: We need to update the interface to support 'drivers'
+                    drivers: drivers as any
                 });
 
             } catch (err) {
@@ -119,8 +170,13 @@ export function useMapData(viewport: { zoom: number; latitude: number; longitude
             }
         };
 
-        fetchData();
-    }, [viewType, viewport.latitude, viewport.longitude, viewport.zoom]);
+        // Debounce the fetch to prevent spamming the backend
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [viewType, viewport.latitude, viewport.longitude, viewport.zoom, status, lastLocationUpdate]);
 
     return { data, isLoading };
 }
