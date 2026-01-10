@@ -10,20 +10,37 @@ export function useDriverAction() {
     const updateStatus = useCallback(async (newStatus: DriverStatus) => {
         try {
             // Get current location for precise context
-            let location = undefined;
-            if (navigator.geolocation) {
-                try {
-                    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
-                    });
-                    location = {
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude
-                    };
-                } catch (e) {
-                    console.warn("Could not get location for status update", e);
-                }
+            // STRICT LOCATION CHECK
+            if (!navigator.geolocation) {
+                const error = new Error("Geolocation not supported");
+                (error as any).code = 'NO_GEOLOCATION';
+                throw error;
             }
+
+            const location = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        resolve({
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude
+                        });
+                    },
+                    (err) => {
+                        // Pass the raw GeolocationPositionError
+                        // code 1 = PERMISSION_DENIED
+                        // code 2 = POSITION_UNAVAILABLE
+                        // code 3 = TIMEOUT
+                        const error = new Error(err.message);
+                        (error as any).code = err.code === 1 ? 'PERMISSION_DENIED' : 'LOCATION_ERROR';
+                        reject(error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            });
 
             // Call API
             console.log("📍 [useDriverAction] Sending status update:", { newStatus, location });

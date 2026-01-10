@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useOnboardingStore, DriverStatus } from "@/stores/onboardingStore";
 import { useFollowUpStore } from "@/stores/followUpStore";
 import { api } from "@/lib/api";
+import { useDriverAction } from "@/hooks/useDriverAction";
 import { ConfirmationToast, ToastData } from "@/components/ui/ConfirmationToast";
 import { MapPin, Truck, Activity, ParkingSquare, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ export function StatusControl() {
     const { status, setStatus } = useOnboardingStore();
     const [isUpdating, setIsUpdating] = useState(false);
     const [toast, setToast] = useState<ToastData | null>(null);
+    const { updateStatus } = useDriverAction();
 
     const statusConfig = {
         rolling: { label: "Rolling", icon: Truck, emoji: "🟢", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
@@ -19,16 +21,22 @@ export function StatusControl() {
         parked: { label: "Parked", icon: ParkingSquare, emoji: "🔵", color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" }
     };
 
-    // Helper to get location
-    const getCurrentLocation = (): Promise<GeolocationPosition> => {
+    // Helper to get location STRICTLY
+    const getCurrentLocationStrict = (): Promise<GeolocationPosition> => {
         return new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
-                reject(new Error("Geolocation not supported"));
+                const error = new Error("Geolocation not supported");
+                (error as any).code = 'NO_GEOLOCATION';
+                reject(error);
                 return;
             }
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
+            navigator.geolocation.getCurrentPosition(resolve, (err) => {
+                const error = new Error(err.message);
+                (error as any).code = err.code === 1 ? 'PERMISSION_DENIED' : 'LOCATION_ERROR';
+                reject(error);
+            }, {
                 enableHighAccuracy: true,
-                timeout: 5000,
+                timeout: 10000,
                 maximumAge: 0
             });
         });
@@ -38,7 +46,7 @@ export function StatusControl() {
         if (isUpdating) return;
         setIsUpdating(true);
         try {
-            const position = await getCurrentLocation();
+            const position = await getCurrentLocationStrict();
             const { latitude, longitude, heading, speed } = position.coords;
 
             // Using check-in endpoint
@@ -52,8 +60,13 @@ export function StatusControl() {
                 message: `You're visible on the map as ${statusConfig[status || 'parked'].label}`,
                 subtext: "Location updated just now"
             });
-        } catch (e) {
+        } catch (e: any) {
             console.error("Check-in failed", e);
+            if (e.code === 'PERMISSION_DENIED') {
+                alert("📍 Maps Need Location\n\nTo check in, we need to know where you are. We don't want your data—we just want to put your dot on the map.\n\n🛡️ Privacy:\n• We only check location when you tap 'Check In'\n• We only show your approximate area when you're parked\n\nPlease check your browser settings to enable location.");
+            } else {
+                alert("⚠️ Location Error\n\nCould not fetch your location. Please try again.");
+            }
         } finally {
             setIsUpdating(false);
         }
@@ -67,9 +80,10 @@ export function StatusControl() {
 
         setIsUpdating(true);
         try {
-            const res = await api.drivers.updateStatus(newStatus);
-            setStatus(newStatus);
+            // Use the hook which enforces location
+            await updateStatus(newStatus);
 
+            // Toast success (local UI feedback)
             setToast({
                 type: "success",
                 title: "Status Updated",
@@ -77,21 +91,16 @@ export function StatusControl() {
                 subtext: "Broadcasting to other drivers..."
             });
 
-            // Handle Dual Questions (Weather + Primary)
-            const questions = [];
-            if (res.weather_info) questions.push(res.weather_info);
-            if (res.follow_up_question) questions.push(res.follow_up_question);
+            // No need to handle follow-ups manually, hook does it.
+            // No need to handle checkIn manually, updateStatus ensures location is sent.
 
-            if (questions.length > 0) {
-                const { open } = useFollowUpStore.getState();
-                open(questions, res.status_update_id);
-            }
-
-            // Trigger location update too to ensure map placement is fresh
-            handleCheckIn();
-
-        } catch (e) {
+        } catch (e: any) {
             console.error("Status update failed", e);
+            if (e.code === 'PERMISSION_DENIED') {
+                alert("📍 Maps Need Location\n\nTo check in, we need to know where you are. We don't want your data—we just want to put your dot on the map.\n\n🛡️ Privacy:\n• We only check location when you tap 'Check In'\n• We only show your approximate area when you're parked\n\nPlease check your browser settings to enable location.");
+            } else {
+                alert("⚠️ Location Error\n\nCould not fetch your location. Please try again.");
+            }
         } finally {
             setIsUpdating(false);
         }
