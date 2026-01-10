@@ -1,12 +1,10 @@
 "use client";
 
-import { LiveStatsBar } from "@/components/stats/LiveStatsBar";
-import { NearbyAlert } from "@/components/stats/NearbyAlert";
 import { Navbar } from "@/components/layout/Navbar";
 import { StatusSelector } from "@/components/onboarding/StatusSelector";
 import { useRouter } from "next/navigation";
 import { useOnboardingStore } from "@/stores/onboardingStore";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { api } from "@/lib/api";
 
 export default function Home() {
@@ -49,14 +47,8 @@ export default function Home() {
       {/* 1. Header Layer */}
       <Navbar />
 
-      {/* 2. Floating Stats Layer (Top Center) */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 w-max pointer-events-none">
-        <div className="pointer-events-auto">
-          <LiveStatsBar />
-        </div>
-      </div>
-
-      {/* 2.5 Hero Layer - Flex grow to push status selector down */}
+      {/* 2. Hero Layer - Flex grow to push status selector down */}
+      {/* Stats bar is provided by GlobalMapLayer -> AdaptiveMap */}
       <div className="flex-1 flex items-center justify-center pt-32 pb-4 px-4">
         <div className="text-center w-full max-w-3xl pointer-events-none select-none">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white drop-shadow-2xl mb-6 md:mb-8 tracking-tighter">
