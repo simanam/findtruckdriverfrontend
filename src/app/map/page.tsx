@@ -1,10 +1,9 @@
 "use client";
 
-
 import { LiveStatsBar } from "@/components/stats/LiveStatsBar";
 import { LocationManager } from "@/components/map/LocationManager";
 import { FollowUpModal } from "@/components/map/FollowUpModal";
-import { Menu } from "lucide-react";
+import { GlobalMapLayer } from "@/components/map/GlobalMapLayer";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { useEffect } from "react";
 import { api } from "@/lib/api";
@@ -45,12 +44,9 @@ export default function MapPage() {
 
     return (
         <main className="relative w-full h-screen overflow-hidden">
-
-
+            <GlobalMapLayer />
             <LocationManager />
             <FollowUpModal />
-
-            {/* Map Layer - Handled Globally */}
         </main>
     );
 }

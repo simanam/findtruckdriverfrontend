@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
-import { GlobalMapLayer } from "@/components/map/GlobalMapLayer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,31 +26,33 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Findtruckdriver - Real-Time Trucking Network",
-    template: "%s | Findtruckdriver",
+    default: "FindTruckDriver — Trucking News, Tips & Driver Lifestyle",
+    template: "%s | FindTruckDriver",
   },
-  description: "Real-time truck driver visibility and coordination. See who's rolling, waiting, or parked near you. Truckers helping truckers - anonymous, free, and built by drivers.",
+  description: "Your source for trucking industry news, driver lifestyle tips, product reviews, regulations, and real-time driver tools. By truckers, for truckers.",
   metadataBase: new URL('https://findtruckdriver.com'),
-  applicationName: 'Findtruckdriver',
+  applicationName: 'FindTruckDriver',
   keywords: [
-    'truck driver',
-    'trucking app',
-    'truck driver map',
-    'trucker app',
+    'trucking news',
+    'truck driver tips',
+    'trucking industry',
+    'driver lifestyle',
+    'trucking regulations',
+    'truck driver blog',
+    'CDL tips',
+    'trucker community',
     'truck parking',
     'detention time',
-    'truck stop',
-    'logistics',
-    'shipping',
-    'transportation',
-    'driver network',
-    'trucker community',
-    'real-time trucking',
-    'driver status',
+    'truck stop reviews',
+    'logistics news',
+    'transportation industry',
+    'trucking products',
+    'driver health',
+    'ELD compliance',
   ],
-  authors: [{ name: 'Findtruckdriver Team' }],
-  creator: 'Findtruckdriver',
-  publisher: 'Findtruckdriver',
+  authors: [{ name: 'FindTruckDriver Team' }],
+  creator: 'FindTruckDriver',
+  publisher: 'FindTruckDriver',
   formatDetection: {
     email: false,
     address: false,
@@ -59,10 +60,10 @@ export const metadata: Metadata = {
   },
   category: 'transportation',
   openGraph: {
-    title: 'See Who\'s Out There With You | Findtruckdriver',
-    description: 'You\'re not alone on the road. Real-time visibility for truck drivers - see who\'s rolling, waiting, or parked near you. Truckers helping truckers.',
+    title: 'FindTruckDriver — Trucking News, Tips & Driver Lifestyle',
+    description: 'Your source for trucking industry news, driver lifestyle tips, product reviews, regulations, and real-time driver tools.',
     url: 'https://findtruckdriver.com',
-    siteName: 'Findtruckdriver',
+    siteName: 'FindTruckDriver',
     locale: 'en_US',
     type: 'website',
     images: [
@@ -70,14 +71,14 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Findtruckdriver - See Who\'s Out There With You',
+        alt: 'FindTruckDriver — Trucking News & Driver Tools',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'See Who\'s Out There With You | Findtruckdriver',
-    description: 'You\'re not alone on the road. Real-time visibility for truck drivers - see who\'s rolling, waiting, or parked near you.',
+    title: 'FindTruckDriver — Trucking News, Tips & Driver Lifestyle',
+    description: 'Your source for trucking industry news, driver lifestyle tips, product reviews, and real-time driver tools.',
     creator: '@findtruckdriver',
     images: ['/og-image.png'],
   },
@@ -108,33 +109,37 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   alternates: {
     canonical: 'https://findtruckdriver.com',
+    types: {
+      'application/rss+xml': '/feed.xml',
+    },
   },
 };
 
 // JSON-LD Structured Data
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'WebApplication',
-  name: 'Findtruckdriver',
-  description: 'Real-time truck driver visibility and coordination network. See who\'s rolling, waiting, or parked near you.',
-  url: 'https://findtruckdriver.com',
-  applicationCategory: 'TransportApplication',
-  operatingSystem: 'Web',
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
-  },
-  author: {
-    '@type': 'Organization',
-    name: 'Findtruckdriver',
-    url: 'https://findtruckdriver.com',
-  },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '100',
-  },
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      name: 'FindTruckDriver',
+      description: 'Trucking industry news, driver lifestyle tips, product reviews, and real-time driver tools.',
+      url: 'https://findtruckdriver.com',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: 'https://findtruckdriver.com/search?q={search_term_string}',
+        'query-input': 'required name=search_term_string',
+      },
+    },
+    {
+      '@type': 'Organization',
+      name: 'FindTruckDriver',
+      url: 'https://findtruckdriver.com',
+      logo: 'https://findtruckdriver.com/icons/FTD_LOGO.png',
+      sameAs: [
+        'https://twitter.com/findtruckdriver',
+      ],
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -149,16 +154,13 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <link rel="alternate" type="application/rss+xml" title="FindTruckDriver Blog" href="/feed.xml" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased text-slate-200 bg-slate-950`}
       >
         <Navbar />
-        <GlobalMapLayer />
-        <div className="relative z-10 w-full h-full min-h-screen pointer-events-none">
-          {/* Pages verify their own pointer-events-auto where needed */}
-          {children}
-        </div>
+        {children}
       </body>
     </html>
   );

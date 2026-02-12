@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
         hostname: 'api.mapbox.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.sanity.io',
+        pathname: '/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },

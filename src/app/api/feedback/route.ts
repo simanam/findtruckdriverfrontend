@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const NOTION_API_URL = "https://api.notion.com/v1/pages";
-const NOTION_TOKEN = process.env.NEXT_PUBLIC_NOTION_INTEGRATION_KEY;
-const DATABASE_ID = process.env.NEXT_PUBLIC_NOTION_DATABASE_ID;
-const RESEND_API_KEY = process.env.NEXT_PUBLIC_RESEND_KEY;
+const NOTION_TOKEN = process.env.NOTION_INTEGRATION_KEY;
+const DATABASE_ID = process.env.NOTION_DATABASE_ID;
+const RESEND_API_KEY = process.env.RESEND_KEY;
 
 async function sendConfirmationEmail(email: string, category: string) {
     if (!RESEND_API_KEY) {

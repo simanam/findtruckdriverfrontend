@@ -14,22 +14,54 @@ export function Footer() {
                         <Link href="/" className="inline-block mb-4">
                             <img
                                 src="/icons/FTD_LOGO.png"
-                                alt="Findtruckdriver"
+                                alt="FindTruckDriver"
                                 className="w-10 h-10"
                             />
                         </Link>
                         <p className="text-slate-400 text-sm leading-relaxed">
-                            Real-time visibility for truck drivers. Truckers helping truckers.
+                            Trucking news, tips, and real-time driver tools. By truckers, for truckers.
                         </p>
                     </div>
 
-                    {/* Product */}
+                    {/* Blog */}
                     <div>
-                        <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">Product</h3>
+                        <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">Blog</h3>
+                        <ul className="space-y-3">
+                            <li>
+                                <Link href="/category/industry-news" className="text-slate-400 hover:text-white text-sm transition-colors">
+                                    Industry News
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/category/driver-lifestyle" className="text-slate-400 hover:text-white text-sm transition-colors">
+                                    Driver Lifestyle
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/category/regulations" className="text-slate-400 hover:text-white text-sm transition-colors">
+                                    Regulations
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/category/trucking-tips" className="text-slate-400 hover:text-white text-sm transition-colors">
+                                    Trucking Tips
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/category/product-reviews" className="text-slate-400 hover:text-white text-sm transition-colors">
+                                    Product Reviews
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* Tools & Product */}
+                    <div>
+                        <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">Tools</h3>
                         <ul className="space-y-3">
                             <li>
                                 <Link href="/map" className="text-slate-400 hover:text-white text-sm transition-colors">
-                                    Map
+                                    Driver Map
                                 </Link>
                             </li>
                             <li>
@@ -50,7 +82,7 @@ export function Footer() {
                         </ul>
                     </div>
 
-                    {/* Legal */}
+                    {/* Legal & Contact */}
                     <div>
                         <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">Legal</h3>
                         <ul className="space-y-3">
@@ -64,13 +96,6 @@ export function Footer() {
                                     Privacy Policy
                                 </Link>
                             </li>
-                        </ul>
-                    </div>
-
-                    {/* Contact */}
-                    <div>
-                        <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">Contact</h3>
-                        <ul className="space-y-3">
                             <li>
                                 <a
                                     href="mailto:support@logixtecs.com"
@@ -98,9 +123,13 @@ export function Footer() {
                 <div className="pt-8 border-t border-slate-800">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-slate-500 text-sm">
-                            &copy; {currentYear} Findtruckdriver. All rights reserved.
+                            &copy; {currentYear} FindTruckDriver. All rights reserved.
                         </p>
-                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <div className="flex items-center gap-4 text-slate-500 text-sm">
+                            <Link href="/feed.xml" className="hover:text-white transition-colors">
+                                RSS Feed
+                            </Link>
+                            <span className="text-slate-700">|</span>
                             <span>A product of</span>
                             <a
                                 href="https://www.logixtecs.com"

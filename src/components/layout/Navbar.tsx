@@ -1,30 +1,34 @@
 "use client";
 
-import { Map as MapIcon, User, Settings, LogOut, Check, Menu, Info } from "lucide-react";
+import { Map as MapIcon, User, LogOut, Check, Menu, Info, Search, ChevronDown, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { api } from "@/lib/api";
-import { useEffect } from "react";
 import { useDriverAction } from "@/hooks/useDriverAction";
 
 interface NavbarProps {
     className?: string;
     onJoinClick?: () => void;
 }
+
 export function Navbar({ className, onJoinClick }: NavbarProps) {
-    const { avatarId, handle, reset, setAvatarId, setStatus, setHandle, facilityName } = useOnboardingStore();
+    const { avatarId, handle, status, reset, setAvatarId, setStatus, setHandle } = useOnboardingStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const categoryRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const pathname = usePathname();
     const { updateStatus } = useDriverAction();
+
+    // Hide navbar on studio pages
+    if (pathname?.startsWith('/studio')) return null;
 
     // Hydrate store on mount if logged in but store is empty
     useEffect(() => {
         const hydrate = async () => {
-            // If we have no avatarId but we have a token (checked implicitly by api call success)
-            // we should try to fetch the profile.
             if (!avatarId && api.isLoggedIn) {
                 try {
                     const driver = await api.drivers.getMe();
@@ -41,6 +45,17 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
         hydrate();
     }, [avatarId, setAvatarId, setStatus, setHandle]);
 
+    // Close category dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+                setIsCategoryOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleLogout = async () => {
         api.auth.logout();
         reset();
@@ -48,24 +63,95 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
         setIsMenuOpen(false);
     };
 
+    const isMapPage = pathname === '/map';
+
     return (
         <header className={cn(
-            "fixed top-0 left-0 right-0 z-50 pointer-events-none",
-            "p-4 md:p-6",
+            "fixed top-0 left-0 right-0 z-50",
+            isMapPage ? "pointer-events-none p-4 md:p-6" : "bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50 px-4 md:px-8 py-3",
             className
         )}>
-            <div className="flex items-center justify-between">
+            <div className={cn("flex items-center justify-between", !isMapPage && "max-w-6xl mx-auto")}>
                 {/* Logo */}
-                <Link href="/" className="pointer-events-auto hover:scale-105 transition-transform">
+                <Link href="/" className={cn("hover:scale-105 transition-transform", isMapPage && "pointer-events-auto")}>
                     <img
                         src="/icons/FTD_LOGO.png"
-                        alt="Findtruckdriver"
+                        alt="FindTruckDriver"
                         className="w-10 h-10"
                     />
                 </Link>
 
+                {/* Center Nav Links (desktop, non-map pages) */}
+                {!isMapPage && (
+                    <nav className="hidden md:flex items-center gap-6">
+                        <Link
+                            href="/"
+                            className={cn(
+                                "text-sm font-medium transition-colors",
+                                pathname === '/' ? "text-white" : "text-slate-400 hover:text-white"
+                            )}
+                        >
+                            Home
+                        </Link>
+
+                        {/* Categories Dropdown */}
+                        <div ref={categoryRef} className="relative">
+                            <button
+                                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                                className={cn(
+                                    "flex items-center gap-1 text-sm font-medium transition-colors",
+                                    pathname?.startsWith('/category') ? "text-white" : "text-slate-400 hover:text-white"
+                                )}
+                            >
+                                Categories
+                                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isCategoryOpen && "rotate-180")} />
+                            </button>
+                            {isCategoryOpen && (
+                                <div className="absolute top-full left-0 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden z-50">
+                                    <div className="p-1">
+                                        <Link href="/category/industry-news" onClick={() => setIsCategoryOpen(false)} className="block px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Industry News</Link>
+                                        <Link href="/category/driver-lifestyle" onClick={() => setIsCategoryOpen(false)} className="block px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Driver Lifestyle</Link>
+                                        <Link href="/category/regulations" onClick={() => setIsCategoryOpen(false)} className="block px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Regulations</Link>
+                                        <Link href="/category/product-reviews" onClick={() => setIsCategoryOpen(false)} className="block px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Product Reviews</Link>
+                                        <Link href="/category/trucking-tips" onClick={() => setIsCategoryOpen(false)} className="block px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">Trucking Tips</Link>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <Link
+                            href="/about"
+                            className={cn(
+                                "text-sm font-medium transition-colors",
+                                pathname === '/about' ? "text-white" : "text-slate-400 hover:text-white"
+                            )}
+                        >
+                            About
+                        </Link>
+
+                        <Link
+                            href="/map"
+                            className="flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                        >
+                            <MapIcon className="w-3.5 h-3.5" />
+                            Driver Map
+                        </Link>
+                    </nav>
+                )}
+
                 {/* Right Actions */}
-                <div className="pointer-events-auto flex items-center gap-3">
+                <div className={cn("flex items-center gap-3", isMapPage && "pointer-events-auto")}>
+                    {/* Search icon (non-map, desktop) */}
+                    {!isMapPage && (
+                        <Link
+                            href="/search"
+                            className="hidden md:flex p-2 text-slate-400 hover:text-white transition-colors"
+                            aria-label="Search articles"
+                        >
+                            <Search className="w-4 h-4" />
+                        </Link>
+                    )}
+
                     {avatarId ? (
                         <div className="relative">
                             {/* Profile Trigger */}
@@ -94,7 +180,6 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    {/* Status Dot */}
                                     {status && (
                                         <span className={cn("absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900",
                                             status === 'rolling' ? "bg-emerald-500" :
@@ -109,7 +194,6 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                             {/* Dropdown Menu (Logged In) */}
                             {isMenuOpen && (
                                 <div className="absolute right-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
-
                                     {/* Status Switcher Section */}
                                     <div className="p-2 border-b border-slate-700/50">
                                         <p className="text-xs font-bold text-slate-500 uppercase px-2 mb-2">Update Status</p>
@@ -143,27 +227,19 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                     </div>
 
                                     <div className="p-1">
-                                        <Link
-                                            href="/map"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                        >
-                                            <MapIcon className="w-4 h-4" />
-                                            <span>Back to Map</span>
+                                        <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Home className="w-4 h-4" />
+                                            <span>Blog Home</span>
                                         </Link>
-                                        <Link
-                                            href="/profile"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                        >
+                                        <Link href="/map" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                            <MapIcon className="w-4 h-4" />
+                                            <span>Driver Map</span>
+                                        </Link>
+                                        <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <User className="w-4 h-4" />
                                             <span>Profile</span>
                                         </Link>
-                                        <Link
-                                            href="/about"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                        >
+                                        <Link href="/about" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <Info className="w-4 h-4" />
                                             <span>About</span>
                                         </Link>
@@ -182,16 +258,15 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                     ) : (
                         <>
                             {/* Desktop Links */}
-                            <div className="hidden md:flex items-center gap-4">
-                                <Link href="/about" className="text-slate-300 hover:text-white font-medium text-sm transition-colors">
-                                    About
-                                </Link>
-                                <Link href="/login" className="text-slate-300 hover:text-white font-medium text-sm transition-colors">
-                                    Login
-                                </Link>
-                            </div>
+                            {!isMapPage && (
+                                <div className="hidden md:flex items-center gap-4">
+                                    <Link href="/login" className="text-slate-300 hover:text-white font-medium text-sm transition-colors">
+                                        Login
+                                    </Link>
+                                </div>
+                            )}
 
-                            {/* Mobile Hamburger / Actions */}
+                            {/* Mobile Actions */}
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={(e) => {
@@ -211,7 +286,7 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                 <div className="md:hidden relative">
                                     <button
                                         onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                        className="p-2 bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-700/50 text-slate-300 pointer-events-auto"
+                                        className="p-2 bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-700/50 text-slate-300"
                                     >
                                         <Menu className="w-5 h-5" />
                                     </button>
@@ -220,21 +295,20 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                     {isMenuOpen && (
                                         <div className="absolute right-0 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-top-right z-50">
                                             <div className="p-1">
-                                                <Link
-                                                    href="/about"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                                >
-                                                    <MapIcon className="w-4 h-4" />
-                                                    <span>About</span>
+                                                <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <Home className="w-4 h-4" /><span>Home</span>
                                                 </Link>
-                                                <Link
-                                                    href="/login"
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                                >
-                                                    <User className="w-4 h-4" />
-                                                    <span>Login</span>
+                                                <Link href="/search" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <Search className="w-4 h-4" /><span>Search</span>
+                                                </Link>
+                                                <Link href="/map" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <MapIcon className="w-4 h-4" /><span>Driver Map</span>
+                                                </Link>
+                                                <Link href="/about" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <Info className="w-4 h-4" /><span>About</span>
+                                                </Link>
+                                                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <User className="w-4 h-4" /><span>Login</span>
                                                 </Link>
                                             </div>
                                         </div>
