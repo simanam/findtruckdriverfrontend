@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import { Loader2, Send, ArrowRight, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { GlobalMapLayer } from "@/components/map/GlobalMapLayer";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -53,15 +54,17 @@ export default function LoginPage() {
     };
 
     return (
-        <OnboardingLayout
-            step={1}
-            totalSteps={1}
-            title="Welcome Back"
-            subtitle="Log in to get back on the road"
-            onClose={() => router.push('/')}
-            centeredMode={true}
-        >
-            <div className="space-y-6">
+        <main className="relative w-full h-screen overflow-hidden">
+            <GlobalMapLayer />
+            <OnboardingLayout
+                step={1}
+                totalSteps={1}
+                title="Welcome Back"
+                subtitle="Log in to get back on the road"
+                onClose={() => router.push('/')}
+                centeredMode={true}
+            >
+                <div className="space-y-6">
                 {!showOtp ? (
                     // Email Input
                     <div className="space-y-4">
@@ -123,7 +126,8 @@ export default function LoginPage() {
                         {error}
                     </div>
                 )}
-            </div>
-        </OnboardingLayout>
+                </div>
+            </OnboardingLayout>
+        </main>
     );
 }

@@ -6,6 +6,7 @@ import { StatusSelector } from "@/components/onboarding/StatusSelector";
 import { AvatarBuilder } from "@/components/onboarding/AvatarBuilder";
 import { HandleInput } from "@/components/onboarding/HandleInput";
 import { EmailVerification } from "@/components/onboarding/EmailVerification";
+import { GlobalMapLayer } from "@/components/map/GlobalMapLayer";
 import { useEffect } from "react";
 
 export default function JoinPage() {
@@ -52,14 +53,17 @@ export default function JoinPage() {
     const { title, subtitle, component } = getStepData();
 
     return (
-        <OnboardingLayout
-            title={title}
-            subtitle={subtitle}
-            step={step}
-            totalSteps={4}
-            onClose={() => window.location.href = '/'}
-        >
-            {component}
-        </OnboardingLayout>
+        <main className="relative w-full h-screen overflow-hidden">
+            <GlobalMapLayer />
+            <OnboardingLayout
+                title={title}
+                subtitle={subtitle}
+                step={step}
+                totalSteps={4}
+                onClose={() => window.location.href = '/'}
+            >
+                {component}
+            </OnboardingLayout>
+        </main>
     );
 }

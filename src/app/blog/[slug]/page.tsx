@@ -217,45 +217,40 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
           )}
 
-          {/* Content Layout */}
-          <div className="flex gap-8">
-            {/* Table of Contents (desktop sidebar) */}
-            <aside className="hidden lg:block w-56 shrink-0">
-              <div className="sticky top-24">
-                <TableOfContents body={post.body || []} />
+          {/* Article Body — centered, readable width */}
+          <div className="max-w-2xl mx-auto">
+            {post.body && (
+              <PortableText
+                value={post.body}
+                components={portableTextComponents}
+              />
+            )}
+
+            {/* Tags */}
+            {post.tags?.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap mt-10 pt-6 border-t border-slate-800">
+                <Tag className="w-4 h-4 text-slate-500" />
+                {post.tags.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
-            </aside>
+            )}
 
-            {/* Article Body */}
-            <div className="flex-1 min-w-0 max-w-none prose-slate">
-              {post.body && (
-                <PortableText
-                  value={post.body}
-                  components={portableTextComponents}
-                />
-              )}
-
-              {/* Tags */}
-              {post.tags?.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap mt-10 pt-6 border-t border-slate-800">
-                  <Tag className="w-4 h-4 text-slate-500" />
-                  {post.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Share (bottom) */}
-              <div className="mt-8 pt-6 border-t border-slate-800">
-                <ShareButtons url={postUrl} title={post.title} />
-              </div>
+            {/* Share (bottom) */}
+            <div className="mt-8 pt-6 border-t border-slate-800">
+              <ShareButtons url={postUrl} title={post.title} />
             </div>
           </div>
+
+          {/* Table of Contents (desktop — fixed sidebar) */}
+          <aside className="hidden xl:block fixed top-24 left-8 w-52">
+            <TableOfContents body={post.body || []} />
+          </aside>
 
           {/* Author Card */}
           {post.author && (
