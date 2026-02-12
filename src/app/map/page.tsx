@@ -34,8 +34,8 @@ export default function MapPage() {
                     }
                 }
             } catch (error) {
-                // Not logged in -> Redirect home
-                router.push('/');
+                // Not logged in -> Redirect to join
+                router.push('/join');
             }
         };
 
