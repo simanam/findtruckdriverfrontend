@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { api } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { useDriverAction } from "@/hooks/useDriverAction";
 
 interface NavbarProps {
@@ -15,9 +16,10 @@ interface NavbarProps {
 }
 
 export function Navbar({ className, onJoinClick }: NavbarProps) {
-    const { avatarId, handle, status, reset, setAvatarId, setStatus, setHandle } = useOnboardingStore();
+    const { avatarId, handle, status, cbHandle, reset, setAvatarId, setStatus, setHandle } = useOnboardingStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(api.isLoggedIn);
     const categoryRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
@@ -26,10 +28,28 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
     // Hide navbar on studio pages
     if (pathname?.startsWith('/studio')) return null;
 
+    // Listen for Supabase auth state changes to sync login status
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                setIsLoggedIn(true);
+            } else if (event === 'SIGNED_OUT') {
+                setIsLoggedIn(false);
+            }
+        });
+
+        // Also check API token on mount
+        setIsLoggedIn(api.isLoggedIn);
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
     // Hydrate store on mount if logged in but store is empty
     useEffect(() => {
         const hydrate = async () => {
-            if (!avatarId && api.isLoggedIn) {
+            if (!avatarId && (api.isLoggedIn || isLoggedIn)) {
                 try {
                     const driver = await api.drivers.getMe();
                     if (driver && driver.handle) {
@@ -43,7 +63,7 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
             }
         };
         hydrate();
-    }, [avatarId, setAvatarId, setStatus, setHandle]);
+    }, [avatarId, isLoggedIn, setAvatarId, setStatus, setHandle]);
 
     // Close category dropdown on outside click
     useEffect(() => {
@@ -58,6 +78,8 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
 
     const handleLogout = async () => {
         api.auth.logout();
+        await supabase.auth.signOut();
+        setIsLoggedIn(false);
         reset();
         router.push('/');
         setIsMenuOpen(false);
@@ -161,7 +183,7 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                             >
                                 <div className="hidden sm:block pl-2">
                                     <span className="block text-sm font-medium text-slate-300">
-                                        {handle || 'Driver'}
+                                        {cbHandle || handle || 'Driver'}
                                     </span>
                                     {status && (
                                         <span className={cn("block text-[10px] uppercase font-bold tracking-wider",

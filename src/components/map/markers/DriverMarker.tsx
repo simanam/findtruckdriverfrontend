@@ -9,6 +9,8 @@ interface DriverMarkerProps {
     driver: {
         driver_id: string;
         handle: string;
+        display_name?: string;
+        cb_handle?: string;
         avatar_id: string;
         status: string;
         location: {
@@ -21,7 +23,8 @@ interface DriverMarkerProps {
 }
 
 export function DriverMarker({ driver, onClick }: DriverMarkerProps) {
-    const { handle, avatar_id, status, location } = driver;
+    const { avatar_id, status, location } = driver;
+    const displayLabel = driver.display_name || driver.cb_handle || driver.handle;
 
     return (
         <Marker
@@ -51,7 +54,7 @@ export function DriverMarker({ driver, onClick }: DriverMarkerProps) {
 
                 {/* Tooltip */}
                 <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-900/95 text-white text-xs font-bold rounded-lg whitespace-nowrap pointer-events-none z-50 border border-slate-700 shadow-xl">
-                    {handle}
+                    {displayLabel}
                     {driver.distance_miles !== undefined && (
                         <span className="font-normal text-slate-400 ml-1">
                             ({driver.distance_miles.toFixed(1)}mi)

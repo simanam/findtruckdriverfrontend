@@ -105,7 +105,7 @@ export function StatusSelector({ triggerAnimation }: StatusSelectorProps) {
                 status ? "max-h-20 opacity-100 translate-y-0" : "max-h-0 opacity-0 translate-y-4"
             )}>
                 <button
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(3)}
                     className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-sky-500/25 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer z-50"
                 >
                     <span>Confirm Status</span>

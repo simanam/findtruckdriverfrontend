@@ -2,11 +2,13 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusDot, DriverStatus } from "@/components/ui/StatusDot";
 import { cn } from "@/lib/utils";
 import { MapMarker as Marker } from "../MapMarker";
+import { useOnboardingStore } from "@/stores/onboardingStore";
 
 interface CurrentUserMarkerProps {
     user: {
         driver_id: string;
         handle: string;
+        cb_handle?: string;
         avatar_id: string;
         status: DriverStatus | string;
         location: [number, number];
@@ -15,7 +17,11 @@ interface CurrentUserMarkerProps {
 }
 
 export function CurrentUserMarker({ user, onClick }: CurrentUserMarkerProps) {
+    const { cbHandle } = useOnboardingStore();
     if (!user || !user.location) return null;
+
+    // Use CB handle from user data, onboarding store, or fall back to handle
+    const displayName = user.cb_handle || cbHandle || user.handle;
 
     return (
         <Marker
@@ -48,7 +54,7 @@ export function CurrentUserMarker({ user, onClick }: CurrentUserMarkerProps) {
                 {/* Label */}
                 <div className="mt-2 px-3 py-1.5 bg-slate-900/90 backdrop-blur border-2 border-yellow-400 rounded-xl text-center shadow-lg transform transition-all">
                     <span className="block text-yellow-400 font-bold text-sm leading-tight">
-                        {user.handle}
+                        {displayName}
                     </span>
                     <span className="block text-slate-400 text-[10px] leading-tight uppercase font-medium">
                         You are here

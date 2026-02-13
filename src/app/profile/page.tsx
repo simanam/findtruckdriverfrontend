@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit2, LogOut, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit2, LogOut, Trash2, Loader2, Briefcase, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { AvatarBuilder } from "@/components/onboarding/AvatarBuilder";
 import { useOnboardingStore } from "@/stores/onboardingStore";
+import { OpenToWorkBadge } from "@/components/profile/OpenToWorkBadge";
+import { ProfessionalProfile } from "@/types/profile";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -22,6 +25,9 @@ export default function ProfilePage() {
     const [handleError, setHandleError] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
+    // Professional Profile State
+    const [proProfile, setProProfile] = useState<ProfessionalProfile | null>(null);
+
     // Delete State
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteInput, setDeleteInput] = useState("");
@@ -37,13 +43,15 @@ export default function ProfilePage() {
                 return;
             }
 
-            const [p, s] = await Promise.all([
+            const [p, s, pp] = await Promise.all([
                 api.drivers.getMe(),
-                api.drivers.getStats().catch(() => null) // Stats might fail if empty?
+                api.drivers.getStats().catch(() => null), // Stats might fail if empty?
+                api.profile.getMe().catch(() => null) // Professional profile might not exist yet
             ]);
 
             setProfile(p);
             setStats(s);
+            setProProfile(pp);
             setNewHandle(p.handle || "");
         } catch (e) {
             console.error("Failed to load profile", e);
@@ -237,7 +245,33 @@ export default function ProfilePage() {
                     <p className="text-slate-500 text-sm mt-1">
                         Member since {profile?.created_at ? formatDate(profile.created_at) : '...'}
                     </p>
+
+                    {/* Open to Work Badge */}
+                    {proProfile?.open_to_work && (
+                        <div className="mt-3">
+                            <OpenToWorkBadge size="md" />
+                        </div>
+                    )}
                 </div>
+            </div>
+
+            {/* Edit Professional Profile */}
+            <div className="max-w-md mx-auto px-6 pt-6">
+                <Link
+                    href="/profile/edit"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 hover:border-sky-500/30 rounded-xl text-sky-400 hover:text-sky-300 transition-all group"
+                >
+                    <div className="flex items-center gap-3">
+                        <Briefcase className="w-5 h-5" />
+                        <div className="text-left">
+                            <span className="text-sm font-semibold block">Edit Professional Profile</span>
+                            <span className="text-xs text-sky-500/70">
+                                {proProfile ? `${proProfile.completion_percentage}% complete` : 'Set up your professional profile'}
+                            </span>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
             </div>
 
             {/* Stats Grid */}

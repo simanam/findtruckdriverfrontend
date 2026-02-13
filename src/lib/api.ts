@@ -36,8 +36,9 @@ class ApiClient {
 
     private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         const url = `${API_BASE_URL}${endpoint}`;
+        const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
         const headers: HeadersInit = {
-            'Content-Type': 'application/json',
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
             ...options.headers,
         };
 
@@ -100,6 +101,30 @@ class ApiClient {
                 body: JSON.stringify({ email }),
             }),
 
+        signup: (email: string, password: string) =>
+            this.request<{ tokens: { access_token: string; refresh_token: string }; user: any; driver: any }>('/auth/signup', {
+                method: 'POST',
+                body: JSON.stringify({ email, password }),
+            }),
+
+        login: (email: string, password: string) =>
+            this.request<{ tokens: { access_token: string; refresh_token: string }; user: any; driver: any }>('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password }),
+            }),
+
+        resetPassword: (email: string) =>
+            this.request<{ success: boolean }>('/auth/password/reset-request', {
+                method: 'POST',
+                body: JSON.stringify({ email }),
+            }),
+
+        confirmResetPassword: (access_token: string, new_password: string) =>
+            this.request<{ success: boolean }>('/auth/password/reset-confirm', {
+                method: 'POST',
+                body: JSON.stringify({ access_token, new_password }),
+            }),
+
         getMe: () => this.request('/auth/me'),
 
         logout: () => {
@@ -111,13 +136,22 @@ class ApiClient {
 
     // --- Drivers ---
     drivers = {
-        create: (profileData: { handle: string; avatar_id: string; status: string }) =>
+        create: (profileData: { handle: string; avatar_id: string; status: string; role?: string; cb_handle?: string }) =>
             this.request<any>('/drivers', {
                 method: 'POST',
                 body: JSON.stringify(profileData),
             }),
 
         getMe: () => this.request<any>('/drivers/me'),
+
+        getCBHandleSuggestions: () =>
+            this.request<{ suggestions: string[] }>('/drivers/cb-handle/suggestions'),
+
+        checkCBHandle: (cb_handle: string) =>
+            this.request<{ available: boolean }>('/drivers/cb-handle/check', {
+                method: 'POST',
+                body: JSON.stringify({ cb_handle }),
+            }),
 
         updateStatus: (status: 'rolling' | 'waiting' | 'parked', location?: { latitude: number; longitude: number }) =>
             this.request<{
@@ -222,6 +256,41 @@ class ApiClient {
                 message?: string;
             }>(`/map/weather?${query}`);
         }
+    };
+
+    // --- Professional Profile ---
+    profile = {
+        create: (data: any) =>
+            this.request<any>('/professional/profile', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        getMe: () => this.request<any>('/professional/profile/me'),
+
+        updateMe: (data: any) =>
+            this.request<any>('/professional/profile/me', {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            }),
+
+        getPublic: (driverId: string) =>
+            this.request<any>(`/professional/profile/${driverId}`),
+
+        getOpenToWork: (limit = 20, offset = 0) =>
+            this.request<any>(`/professional/profiles/open-to-work?limit=${limit}&offset=${offset}`),
+
+        uploadPhoto: (file: File) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            return this.request<any>('/professional/profile/me/photo', {
+                method: 'POST',
+                body: formData,
+            });
+        },
+
+        searchFMCSA: (query: string, type: 'dot' | 'name' = 'name') =>
+            this.request<{ results: any[]; count: number }>(`/professional/fmcsa/search?q=${encodeURIComponent(query)}&type=${type}`),
     };
 }
 

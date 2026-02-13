@@ -2,12 +2,14 @@
 
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowLeft, AtSign } from "lucide-react";
+import { ArrowRight, ArrowLeft, AtSign, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { api } from "@/lib/api";
 
 export function HandleInput() {
-    const { handle, setHandle, setStep } = useOnboardingStore();
+    const { handle, setHandle, setStep, status, avatarId, role, cbHandle } = useOnboardingStore();
     const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const validate = (value: string) => {
         if (value.length < 3) return "Too short (min 3 chars)";
@@ -23,13 +25,31 @@ export function HandleInput() {
         else setError(null);
     };
 
-    const onNext = () => {
+    const onNext = async () => {
         const err = validate(handle);
         if (err) {
             setError(err);
             return;
         }
-        setStep(4);
+
+        setLoading(true);
+        setError(null);
+        try {
+            // Create driver profile with all onboarding data
+            await api.drivers.create({
+                handle,
+                avatar_id: avatarId || 'avatar_1',
+                status: status || 'parked',
+                role: role || undefined,
+                cb_handle: cbHandle || undefined,
+            });
+
+            // Success! Redirect to map
+            window.location.href = '/map';
+        } catch (err: any) {
+            setError(err.message || "Failed to create profile");
+            setLoading(false);
+        }
     };
 
     return (
@@ -51,6 +71,7 @@ export function HandleInput() {
                                 ? "border-rose-500/50 focus:border-rose-500"
                                 : "border-slate-700/50 focus:border-sky-500"
                         )}
+                        onKeyDown={(e) => e.key === 'Enter' && !error && handle && onNext()}
                     />
                 </div>
                 {error && <p className="text-rose-400 text-xs ml-1">{error}</p>}
@@ -61,24 +82,34 @@ export function HandleInput() {
 
             <div className="flex gap-3">
                 <button
-                    onClick={() => setStep(2)}
-                    className="flex-1 py-3 rounded-xl font-semibold bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors"
+                    onClick={() => setStep(4)}
+                    disabled={loading}
+                    className="flex-1 py-3 rounded-xl font-semibold bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors disabled:opacity-50"
                 >
                     <ArrowLeft className="w-5 h-5 mx-auto" />
                 </button>
 
                 <button
                     onClick={onNext}
-                    disabled={!handle || !!error}
+                    disabled={!handle || !!error || loading}
                     className={cn(
                         "flex-[3] flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all",
-                        handle && !error
-                            ? "bg-sky-500 hover:bg-sky-400 text-white shadow-lg shadow-sky-500/25"
+                        handle && !error && !loading
+                            ? "bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/25"
                             : "bg-slate-800 text-slate-500 cursor-not-allowed"
                     )}
                 >
-                    <span>Continue</span>
-                    <ArrowRight className="w-4 h-4" />
+                    {loading ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Creating Profile...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>Join the Map</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </>
+                    )}
                 </button>
             </div>
         </div>

@@ -198,7 +198,7 @@ export function AvatarBuilder({ initialAvatarId, onSave, mode = 'onboarding' }: 
             onSave(avatarUrl);
         } else {
             setAvatarId(avatarUrl);
-            setStep(3);
+            setStep(4);
         }
     };
 
@@ -344,7 +344,7 @@ export function AvatarBuilder({ initialAvatarId, onSave, mode = 'onboarding' }: 
             <div className="flex gap-3 pt-1">
                 {mode === 'onboarding' && (
                     <button
-                        onClick={() => setStep(1)}
+                        onClick={() => setStep(2)}
                         className="w-12 h-12 rounded-xl font-semibold bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-white transition-colors flex items-center justify-center border border-slate-800 hover:border-slate-600"
                     >
                         <ArrowLeft className="w-5 h-5" />
