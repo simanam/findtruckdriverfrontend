@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import {
@@ -20,22 +20,36 @@ import {
     Trash2,
     Clock,
 } from "lucide-react";
-import { ProfessionalProfile, WorkHistoryEntry, FMCSACarrier } from "@/types/profile";
+import { ProfessionalProfile, WorkHistoryEntry, FMCSACarrier, RoleDetails, ROLES_WITH_TAB, ROLE_TAB_LABELS, RoleWithTab, ROLE_LABELS } from "@/types/profile";
+import { RoleSelector } from "@/components/onboarding/RoleSelector";
 import { ProfileCompletionBar } from "@/components/profile/ProfileCompletionBar";
 import { PrivacyToggle } from "@/components/profile/PrivacyToggle";
 import { PublicProfilePreview } from "@/components/profile/PublicProfilePreview";
 import { CompanySearch } from "@/components/profile/CompanySearch";
+import { BadgeDisplay } from "@/components/ui/BadgeDisplay";
+import { OwnerOperatorFields } from "@/components/profile/OwnerOperatorFields";
+import { MechanicFields } from "@/components/profile/MechanicFields";
+import { DispatcherFields } from "@/components/profile/DispatcherFields";
+import { BrokerFields } from "@/components/profile/BrokerFields";
 import { getNextSteps } from "@/utils/profileCompletion";
 import { cn } from "@/lib/utils";
+import { Wrench, Radio, Handshake } from "lucide-react";
 
-type Tab = 'basic' | 'professional' | 'privacy' | 'opentowork';
+type Tab = 'basic' | 'professional' | 'privacy' | 'opentowork' | 'role';
 
-const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+const BASE_TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'basic', label: 'Basic Info', icon: <User className="w-4 h-4" /> },
     { key: 'professional', label: 'Professional', icon: <Shield className="w-4 h-4" /> },
     { key: 'privacy', label: 'Privacy', icon: <Eye className="w-4 h-4" /> },
     { key: 'opentowork', label: 'Open to Work', icon: <Briefcase className="w-4 h-4" /> },
 ];
+
+const ROLE_TAB_ICONS: Record<RoleWithTab, React.ReactNode> = {
+    owner_operator: <Truck className="w-4 h-4" />,
+    mechanic: <Wrench className="w-4 h-4" />,
+    dispatcher: <Radio className="w-4 h-4" />,
+    freight_broker: <Handshake className="w-4 h-4" />,
+};
 
 const HAUL_TYPES = [
     { value: 'long_haul', label: 'Long Haul' },
@@ -92,6 +106,8 @@ export default function ProfileEditPage() {
     const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
     const [driver, setDriver] = useState<any>(null);
     const [isNewProfile, setIsNewProfile] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const skipDirtyCount = useRef(0);
 
     // Form state
     const [yearsExperience, setYearsExperience] = useState<number | ''>('');
@@ -104,6 +120,7 @@ export default function ProfileEditPage() {
     const [companyName, setCompanyName] = useState('');
     const [mcNumber, setMcNumber] = useState('');
     const [dotNumber, setDotNumber] = useState('');
+    const [companyStartDate, setCompanyStartDate] = useState('');
     const [specialties, setSpecialties] = useState<string[]>([]);
     const [isPublic, setIsPublic] = useState(true);
     const [showExperience, setShowExperience] = useState(true);
@@ -114,12 +131,26 @@ export default function ProfileEditPage() {
     const [lookingFor, setLookingFor] = useState<string[]>([]);
     const [preferredHaul, setPreferredHaul] = useState<string[]>([]);
     const [workHistory, setWorkHistory] = useState<WorkHistoryEntry[]>([]);
+    const [roleDetails, setRoleDetails] = useState<RoleDetails>({});
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [showRoleSelector, setShowRoleSelector] = useState(false);
+    const [savingRole, setSavingRole] = useState(false);
 
     useEffect(() => {
         loadProfile();
     }, []);
+
+    // Track unsaved changes — skip when populateForm triggers state updates
+    useEffect(() => {
+        if (loading) return;
+        if (skipDirtyCount.current > 0) {
+            skipDirtyCount.current--;
+            return;
+        }
+        setHasUnsavedChanges(true);
+        setSaveSuccess(false);
+    }, [yearsExperience, haulType, equipmentType, bio, cdlClass, cdlState, endorsements, companyName, mcNumber, dotNumber, companyStartDate, specialties, isPublic, showExperience, showEquipment, showCompany, showCdl, openToWork, lookingFor, preferredHaul, workHistory, roleDetails]);
 
     const loadProfile = async () => {
         try {
@@ -154,6 +185,8 @@ export default function ProfileEditPage() {
     };
 
     const populateForm = (p: ProfessionalProfile) => {
+        // React batches these into one render, so the useEffect fires once — skip it
+        skipDirtyCount.current++;
         setYearsExperience(p.years_experience ?? '');
         setHaulType(p.haul_type ?? '');
         setEquipmentType(p.equipment_type ?? '');
@@ -164,6 +197,7 @@ export default function ProfileEditPage() {
         setCompanyName(p.company_name ?? '');
         setMcNumber(p.mc_number ?? '');
         setDotNumber(p.dot_number ?? '');
+        setCompanyStartDate(p.company_start_date ?? '');
         setSpecialties(p.specialties || []);
         setIsPublic(p.is_public);
         setShowExperience(p.show_experience);
@@ -174,6 +208,7 @@ export default function ProfileEditPage() {
         setLookingFor(p.looking_for || []);
         setPreferredHaul(p.preferred_haul || []);
         setWorkHistory(p.work_history || []);
+        setRoleDetails(p.role_details || {});
     };
 
     const getTabData = (tab: Tab) => {
@@ -193,6 +228,7 @@ export default function ProfileEditPage() {
                     company_name: companyName || null,
                     mc_number: mcNumber || null,
                     dot_number: dotNumber || null,
+                    company_start_date: companyStartDate || null,
                     specialties,
                     work_history: workHistory,
                 };
@@ -210,6 +246,45 @@ export default function ProfileEditPage() {
                     looking_for: lookingFor,
                     preferred_haul: preferredHaul,
                 };
+            case 'role':
+                return {
+                    role_details: roleDetails,
+                };
+        }
+    };
+
+    // Build dynamic tabs based on driver role
+    const driverRole = driver?.role as RoleWithTab | undefined;
+    const hasRoleTab = driverRole && (ROLES_WITH_TAB as readonly string[]).includes(driverRole);
+    const TABS = hasRoleTab
+        ? [
+            ...BASE_TABS,
+            {
+                key: 'role' as Tab,
+                label: ROLE_TAB_LABELS[driverRole!],
+                icon: ROLE_TAB_ICONS[driverRole!],
+            },
+        ]
+        : BASE_TABS;
+
+    const handleRoleDetailsUpdate = (updates: Partial<RoleDetails>) => {
+        setRoleDetails(prev => ({ ...prev, ...updates }));
+    };
+
+    const handleRoleChange = async (newRole: string) => {
+        if (newRole === driver?.role) {
+            setShowRoleSelector(false);
+            return;
+        }
+        setSavingRole(true);
+        try {
+            const updated = await api.drivers.updateProfile({ role: newRole });
+            setDriver(updated);
+            setShowRoleSelector(false);
+        } catch (e: any) {
+            setError(e.message || 'Failed to update role');
+        } finally {
+            setSavingRole(false);
         }
     };
 
@@ -232,8 +307,9 @@ export default function ProfileEditPage() {
 
             setProfile(updated);
             populateForm(updated);
+            setHasUnsavedChanges(false);
             setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 2000);
+            setTimeout(() => setSaveSuccess(false), 3000);
         } catch (e: any) {
             console.error("Failed to save profile", e);
             setError(e.message || "Failed to save. Please try again.");
@@ -304,6 +380,8 @@ export default function ProfileEditPage() {
     const addWorkHistoryEntry = () => {
         setWorkHistory([...workHistory, {
             company_name: '',
+            dot_number: null,
+            mc_number: null,
             role: null,
             start_date: '',
             end_date: null,
@@ -338,6 +416,7 @@ export default function ProfileEditPage() {
         company_name: companyName || null,
         mc_number: mcNumber || null,
         dot_number: dotNumber || null,
+        company_start_date: companyStartDate || null,
         bio: bio || null,
         specialties,
         estimated_miles: profile?.estimated_miles ?? null,
@@ -350,6 +429,7 @@ export default function ProfileEditPage() {
         looking_for: lookingFor,
         preferred_haul: preferredHaul,
         work_history: workHistory,
+        role_details: roleDetails,
         badges: profile?.badges ?? [],
         completion_percentage: completionPercentage,
         created_at: profile?.created_at ?? '',
@@ -382,7 +462,9 @@ export default function ProfileEditPage() {
                         "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all",
                         saveSuccess
                             ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                            : "bg-sky-600 hover:bg-sky-500 text-white"
+                            : hasUnsavedChanges
+                                ? "bg-amber-500 hover:bg-amber-400 text-black"
+                                : "bg-sky-600 hover:bg-sky-500 text-white"
                     )}
                 >
                     {saving ? (
@@ -392,7 +474,7 @@ export default function ProfileEditPage() {
                     ) : (
                         <Save className="w-4 h-4" />
                     )}
-                    {saving ? 'Saving' : saveSuccess ? 'Saved' : 'Save'}
+                    {saving ? 'Saving' : saveSuccess ? 'Saved' : hasUnsavedChanges ? 'Save *' : 'Save'}
                 </button>
             </div>
 
@@ -406,6 +488,13 @@ export default function ProfileEditPage() {
                         </p>
                     )}
                 </div>
+
+                {/* Badges */}
+                {(profile?.badges ?? []).length > 0 && (
+                    <div className="mb-6">
+                        <BadgeDisplay badges={profile?.badges ?? []} />
+                    </div>
+                )}
 
                 {/* Error Banner */}
                 {error && (
@@ -438,6 +527,52 @@ export default function ProfileEditPage() {
                     {/* === BASIC INFO TAB === */}
                     {activeTab === 'basic' && (
                         <div className="space-y-5">
+                            {/* Role Section */}
+                            <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5">
+                                <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-4">
+                                    <Briefcase className="w-4 h-4" />
+                                    Your Role
+                                </h3>
+
+                                {showRoleSelector ? (
+                                    <div className="space-y-3">
+                                        <RoleSelector
+                                            onSelect={handleRoleChange}
+                                            selectedRole={driver?.role || null}
+                                        />
+                                        {savingRole && (
+                                            <div className="flex items-center gap-2 text-xs text-sky-400">
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                Updating role...
+                                            </div>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowRoleSelector(false)}
+                                            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">{ROLE_LABELS[driver?.role]?.emoji || '💼'}</span>
+                                            <span className="text-sm font-medium text-white">
+                                                {ROLE_LABELS[driver?.role]?.label || driver?.role || 'Not set'}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowRoleSelector(true)}
+                                            className="px-3 py-1.5 text-xs font-medium text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 rounded-lg transition-all"
+                                        >
+                                            Change Role
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Profile Photo Section */}
                             <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5">
                                 <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-4">
@@ -644,24 +779,22 @@ export default function ProfileEditPage() {
                                 </div>
                             </div>
 
-                            {/* Company Section */}
+                            {/* Employment Section */}
                             <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5 space-y-5">
                                 <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
                                     <Building2 className="w-4 h-4" />
-                                    Company Information
+                                    Employment
                                 </h3>
 
-                                {/* FMCSA Search */}
-                                <CompanySearch onSelect={handleFMCSASelect} />
+                                {/* Current Company */}
+                                <div className="space-y-3">
+                                    <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Current Company</p>
 
-                                <div className="border-t border-slate-800/50 pt-4">
-                                    <p className="text-xs text-slate-600 mb-3">
-                                        Or enter company details manually:
-                                    </p>
+                                    <CompanySearch onSelect={handleFMCSASelect} />
 
                                     {/* Company Name */}
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1">
                                             Company Name
                                         </label>
                                         <input
@@ -669,14 +802,14 @@ export default function ProfileEditPage() {
                                             value={companyName}
                                             onChange={(e) => setCompanyName(e.target.value)}
                                             placeholder="Enter company name"
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-3 gap-4">
                                         {/* MC Number */}
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                            <label className="block text-xs font-medium text-slate-400 mb-1">
                                                 MC Number
                                             </label>
                                             <input
@@ -684,13 +817,13 @@ export default function ProfileEditPage() {
                                                 value={mcNumber}
                                                 onChange={(e) => setMcNumber(e.target.value)}
                                                 placeholder="MC-XXXXXX"
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
                                             />
                                         </div>
 
                                         {/* DOT Number */}
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                                            <label className="block text-xs font-medium text-slate-400 mb-1">
                                                 DOT Number
                                             </label>
                                             <input
@@ -698,121 +831,163 @@ export default function ProfileEditPage() {
                                                 value={dotNumber}
                                                 onChange={(e) => setDotNumber(e.target.value)}
                                                 placeholder="XXXXXXX"
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                                            />
+                                        </div>
+
+                                        {/* Start Date */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-400 mb-1">
+                                                Start Date
+                                            </label>
+                                            <input
+                                                type="month"
+                                                value={companyStartDate}
+                                                onChange={(e) => setCompanyStartDate(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all [color-scheme:dark]"
                                             />
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Work History Section */}
-                            <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5 space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                                        <Clock className="w-4 h-4" />
-                                        Work History
-                                    </h3>
-                                    <button
-                                        type="button"
-                                        onClick={addWorkHistoryEntry}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-lg text-xs font-medium text-slate-300 hover:text-white transition-all"
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                        Add
-                                    </button>
-                                </div>
+                                {/* Divider */}
+                                <div className="border-t border-slate-800/50" />
 
-                                {workHistory.length === 0 && (
-                                    <p className="text-xs text-slate-600 py-2">
-                                        No work history added yet. Add your past experience to build your profile.
-                                    </p>
-                                )}
+                                {/* Past Experience */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                                            <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                            Past Experience
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={addWorkHistoryEntry}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-lg text-xs font-medium text-slate-300 hover:text-white transition-all"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            Add
+                                        </button>
+                                    </div>
 
-                                {workHistory.map((entry, idx) => (
-                                    <div key={idx} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-medium text-slate-500">Entry {idx + 1}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeWorkHistoryEntry(idx)}
-                                                className="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
+                                    {workHistory.length === 0 && (
+                                        <p className="text-xs text-slate-600 py-1">
+                                            No past experience added yet. Add previous employers to strengthen your profile.
+                                        </p>
+                                    )}
 
-                                        {/* Company Name */}
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-400 mb-1">Company</label>
-                                            <input
-                                                type="text"
-                                                value={entry.company_name}
-                                                onChange={(e) => updateWorkHistoryEntry(idx, 'company_name', e.target.value)}
-                                                placeholder="Company name"
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
-                                            />
-                                        </div>
-
-                                        {/* Role */}
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-400 mb-1">Role</label>
-                                            <select
-                                                value={entry.role || ''}
-                                                onChange={(e) => updateWorkHistoryEntry(idx, 'role', e.target.value || null)}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all appearance-none"
-                                            >
-                                                <option value="">Select role</option>
-                                                <option value="Company Driver">Company Driver</option>
-                                                <option value="Owner Operator">Owner Operator</option>
-                                                <option value="Team Driver">Team Driver</option>
-                                                <option value="Trainer">Trainer</option>
-                                                <option value="Dispatcher">Dispatcher</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Dates */}
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-1">Start</label>
-                                                <input
-                                                    type="month"
-                                                    value={entry.start_date}
-                                                    onChange={(e) => updateWorkHistoryEntry(idx, 'start_date', e.target.value)}
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all [color-scheme:dark]"
-                                                />
+                                    {workHistory.map((entry, idx) => (
+                                        <div key={idx} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-medium text-slate-500">Entry {idx + 1}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeWorkHistoryEntry(idx)}
+                                                    className="p-1.5 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
+
+                                            {/* Company Name with FMCSA search */}
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-1">End</label>
-                                                {entry.end_date === null ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateWorkHistoryEntry(idx, 'end_date', '')}
-                                                        className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 text-sm text-emerald-400 font-medium text-left"
-                                                    >
-                                                        Current
-                                                    </button>
-                                                ) : (
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="month"
-                                                            value={entry.end_date}
-                                                            onChange={(e) => updateWorkHistoryEntry(idx, 'end_date', e.target.value)}
-                                                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all [color-scheme:dark]"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => updateWorkHistoryEntry(idx, 'end_date', null)}
-                                                            className="px-2 text-xs text-slate-500 hover:text-emerald-400 transition-colors whitespace-nowrap"
-                                                        >
-                                                            Current
-                                                        </button>
+                                                <label className="block text-xs font-medium text-slate-400 mb-1">Company</label>
+                                                <CompanySearch compact onSelect={(carrier) => {
+                                                    const updated = [...workHistory];
+                                                    updated[idx] = {
+                                                        ...updated[idx],
+                                                        company_name: carrier.legal_name || carrier.dba_name || '',
+                                                        dot_number: carrier.dot_number || null,
+                                                        mc_number: carrier.mc_number || null,
+                                                    };
+                                                    setWorkHistory(updated);
+                                                }} />
+                                                <input
+                                                    type="text"
+                                                    value={entry.company_name}
+                                                    onChange={(e) => updateWorkHistoryEntry(idx, 'company_name', e.target.value)}
+                                                    placeholder="Company name"
+                                                    className="w-full mt-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                                                />
+                                                {(entry.dot_number || entry.mc_number) && (
+                                                    <div className="flex gap-3 mt-1.5">
+                                                        {entry.dot_number && (
+                                                            <span className="text-xs text-slate-500">DOT: {entry.dot_number}</span>
+                                                        )}
+                                                        {entry.mc_number && (
+                                                            <span className="text-xs text-slate-500">{entry.mc_number}</span>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Role */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-400 mb-1">Role</label>
+                                                <select
+                                                    value={entry.role || ''}
+                                                    onChange={(e) => updateWorkHistoryEntry(idx, 'role', e.target.value || null)}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all appearance-none"
+                                                >
+                                                    <option value="">Select role</option>
+                                                    <option value="Company Driver">Company Driver</option>
+                                                    <option value="Owner Operator">Owner Operator</option>
+                                                    <option value="Team Driver">Team Driver</option>
+                                                    <option value="Trainer">Trainer</option>
+                                                    <option value="Dispatcher">Dispatcher</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Dates */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-slate-400 mb-1">Start</label>
+                                                    <input
+                                                        type="month"
+                                                        value={entry.start_date}
+                                                        onChange={(e) => updateWorkHistoryEntry(idx, 'start_date', e.target.value)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all [color-scheme:dark]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-slate-400 mb-1">End</label>
+                                                    {entry.end_date === null ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateWorkHistoryEntry(idx, 'end_date', '')}
+                                                            className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 text-sm text-emerald-400 font-medium text-left"
+                                                        >
+                                                            Current
+                                                        </button>
+                                                    ) : (
+                                                        <div className="space-y-1">
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="month"
+                                                                    value={entry.end_date}
+                                                                    min={entry.start_date || undefined}
+                                                                    onChange={(e) => updateWorkHistoryEntry(idx, 'end_date', e.target.value)}
+                                                                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all [color-scheme:dark]"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateWorkHistoryEntry(idx, 'end_date', null)}
+                                                                    className="px-2 text-xs text-slate-500 hover:text-emerald-400 transition-colors whitespace-nowrap"
+                                                                >
+                                                                    Current
+                                                                </button>
+                                                            </div>
+                                                            {entry.end_date && entry.start_date && entry.end_date < entry.start_date && (
+                                                                <p className="text-xs text-rose-400">End date must be after start date</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Specialties */}
@@ -983,6 +1158,24 @@ export default function ProfileEditPage() {
                                         </div>
                                     </div>
                                 </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* === ROLE-SPECIFIC TAB === */}
+                    {activeTab === 'role' && hasRoleTab && (
+                        <div className="space-y-5">
+                            {driverRole === 'owner_operator' && (
+                                <OwnerOperatorFields roleDetails={roleDetails} onUpdate={handleRoleDetailsUpdate} />
+                            )}
+                            {driverRole === 'mechanic' && (
+                                <MechanicFields roleDetails={roleDetails} onUpdate={handleRoleDetailsUpdate} />
+                            )}
+                            {driverRole === 'dispatcher' && (
+                                <DispatcherFields roleDetails={roleDetails} onUpdate={handleRoleDetailsUpdate} />
+                            )}
+                            {driverRole === 'freight_broker' && (
+                                <BrokerFields roleDetails={roleDetails} onUpdate={handleRoleDetailsUpdate} />
                             )}
                         </div>
                     )}

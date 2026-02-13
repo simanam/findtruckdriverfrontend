@@ -172,7 +172,7 @@ class ApiClient {
 
         getStats: () => this.request<any>('/drivers/me/stats'),
 
-        updateProfile: (data: { handle?: string; avatar_id?: string }) =>
+        updateProfile: (data: { handle?: string; avatar_id?: string; role?: string; profile_photo_url?: string }) =>
             this.request<any>('/drivers/me/profile', {
                 method: 'PATCH',
                 body: JSON.stringify(data)
@@ -291,6 +291,33 @@ class ApiClient {
 
         searchFMCSA: (query: string, type: 'dot' | 'name' = 'name') =>
             this.request<{ results: any[]; count: number }>(`/professional/fmcsa/search?q=${encodeURIComponent(query)}&type=${type}`),
+    };
+
+    // --- Integrations (FMCSA/Google verification, role details) ---
+    integrations = {
+        searchGooglePlaces: (query: string, location?: string) =>
+            this.request<{ results: any[]; count: number }>('/integrations/google-places/search', {
+                method: 'POST',
+                body: JSON.stringify({ query, location }),
+            }),
+
+        confirmGooglePlace: (google_data: Record<string, any>) =>
+            this.request<{ success: boolean; message: string; profile: any }>('/integrations/google-places/confirm', {
+                method: 'POST',
+                body: JSON.stringify({ google_data }),
+            }),
+
+        confirmFMCSA: (fmcsa_data: Record<string, any>) =>
+            this.request<{ success: boolean; message: string; profile: any }>('/integrations/fmcsa/confirm', {
+                method: 'POST',
+                body: JSON.stringify({ fmcsa_data }),
+            }),
+
+        updateRoleDetails: (role_details: Record<string, any>) =>
+            this.request<{ success: boolean; message: string; profile: any }>('/integrations/role-details', {
+                method: 'PATCH',
+                body: JSON.stringify({ role_details }),
+            }),
     };
 }
 

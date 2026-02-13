@@ -8,7 +8,8 @@ import Link from "next/link";
 import { AvatarBuilder } from "@/components/onboarding/AvatarBuilder";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { OpenToWorkBadge } from "@/components/profile/OpenToWorkBadge";
-import { ProfessionalProfile } from "@/types/profile";
+import { BadgeDisplay } from "@/components/ui/BadgeDisplay";
+import { ProfessionalProfile, ROLE_LABELS } from "@/types/profile";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -242,6 +243,12 @@ export default function ProfilePage() {
                         </div>
                     )}
 
+                    {profile?.role && ROLE_LABELS[profile.role] && (
+                        <p className="text-slate-400 text-sm mt-1.5">
+                            {ROLE_LABELS[profile.role].emoji} {ROLE_LABELS[profile.role].label}
+                        </p>
+                    )}
+
                     <p className="text-slate-500 text-sm mt-1">
                         Member since {profile?.created_at ? formatDate(profile.created_at) : '...'}
                     </p>
@@ -250,6 +257,13 @@ export default function ProfilePage() {
                     {proProfile?.open_to_work && (
                         <div className="mt-3">
                             <OpenToWorkBadge size="md" />
+                        </div>
+                    )}
+
+                    {/* Earned Badges */}
+                    {proProfile?.badges && proProfile.badges.length > 0 && (
+                        <div className="mt-3">
+                            <BadgeDisplay badges={proProfile.badges} compact />
                         </div>
                     )}
                 </div>
