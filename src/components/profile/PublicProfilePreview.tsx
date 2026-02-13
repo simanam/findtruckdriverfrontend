@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { ProfessionalProfile } from "@/types/profile";
 import { OpenToWorkBadge } from "./OpenToWorkBadge";
-import { Truck, Shield, Building2, Award, MapPin, FileText } from "lucide-react";
+import { Truck, Shield, Building2, Award, MapPin, FileText, EyeOff } from "lucide-react";
 
 interface PublicProfilePreviewProps {
     profile: ProfessionalProfile;
@@ -11,9 +11,32 @@ interface PublicProfilePreviewProps {
 }
 
 export function PublicProfilePreview({ profile, driver }: PublicProfilePreviewProps) {
-    const avatarSrc = driver?.avatar_id?.startsWith('http')
-        ? driver.avatar_id
-        : `https://api.dicebear.com/9.x/avataaars/svg?seed=${driver?.avatar_id || 'driver'}`;
+    // Prefer actual profile photo over DiceBear avatar
+    const avatarSrc = driver?.profile_photo_url
+        ? driver.profile_photo_url
+        : driver?.avatar_id?.startsWith('http')
+            ? driver.avatar_id
+            : `https://api.dicebear.com/9.x/avataaars/svg?seed=${driver?.avatar_id || 'driver'}`;
+
+    // If profile is private, show private message instead of full preview
+    if (!profile.is_public) {
+        return (
+            <div className="w-full max-w-md mx-auto bg-slate-900/50 border border-slate-800/50 rounded-2xl overflow-hidden">
+                <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-800/50">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">
+                        Public Profile Preview
+                    </p>
+                </div>
+                <div className="p-10 flex flex-col items-center text-center gap-3">
+                    <EyeOff className="w-10 h-10 text-slate-700" />
+                    <h3 className="text-sm font-bold text-slate-400">Profile is Private</h3>
+                    <p className="text-xs text-slate-600 max-w-[240px]">
+                        Your profile is hidden from other users. Toggle "Public Profile" on to make it visible.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-md mx-auto bg-slate-900/50 border border-slate-800/50 rounded-2xl overflow-hidden">

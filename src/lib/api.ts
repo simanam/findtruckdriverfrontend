@@ -293,6 +293,122 @@ class ApiClient {
             this.request<{ results: any[]; count: number }>(`/professional/fmcsa/search?q=${encodeURIComponent(query)}&type=${type}`),
     };
 
+    // --- Jobs ---
+    jobs = {
+        create: (data: {
+            title: string;
+            company_name: string;
+            description?: string;
+            how_to_apply: string;
+            mc_number?: string;
+            dot_number?: string;
+            haul_type: string;
+            equipment: string;
+            pay_info?: string;
+            requirements: string[];
+            regions: string[];
+        }) =>
+            this.request<any>('/jobs', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        list: (params?: {
+            haul_type?: string;
+            equipment?: string;
+            region?: string;
+            requirement?: string;
+            search?: string;
+            fmcsa_verified?: boolean;
+            limit?: number;
+            offset?: number;
+        }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<{
+                jobs: any[];
+                total: number;
+                limit: number;
+                offset: number;
+            }>(`/jobs?${query.toString()}`);
+        },
+
+        get: (id: string) => this.request<any>(`/jobs/${id}`),
+
+        update: (id: string, data: Record<string, any>) =>
+            this.request<any>(`/jobs/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            }),
+
+        deactivate: (id: string) =>
+            this.request<{ success: boolean; message: string }>(`/jobs/${id}`, {
+                method: 'DELETE',
+            }),
+
+        listMine: (params?: { include_inactive?: boolean; limit?: number; offset?: number }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<{
+                jobs: any[];
+                total: number;
+                limit: number;
+                offset: number;
+            }>(`/jobs/me?${query.toString()}`);
+        },
+
+        getMatches: (params?: { limit?: number; offset?: number }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<{
+                matches: Array<{
+                    job: any;
+                    match_score: number;
+                    match_reasons: string[];
+                }>;
+                total: number;
+                limit: number;
+                offset: number;
+            }>(`/jobs/matches?${query.toString()}`);
+        },
+
+        getSeekers: (params?: {
+            cdl_class?: string;
+            equipment?: string;
+            region?: string;
+            limit?: number;
+            offset?: number;
+        }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<any[]>(`/drivers/seekers?${query.toString()}`);
+        },
+    };
+
     // --- Integrations (FMCSA/Google verification, role details) ---
     integrations = {
         searchGooglePlaces: (query: string, location?: string) =>

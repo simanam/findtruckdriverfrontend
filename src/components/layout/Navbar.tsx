@@ -1,6 +1,6 @@
 "use client";
 
-import { Map as MapIcon, User, LogOut, Check, Menu, Info, Search, ChevronDown, Home } from "lucide-react";
+import { Map as MapIcon, User, LogOut, Check, Menu, Info, Search, ChevronDown, Home, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
@@ -158,6 +158,17 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                             <MapIcon className="w-3.5 h-3.5" />
                             Driver Map
                         </Link>
+
+                        <Link
+                            href="/jobs"
+                            className={cn(
+                                "flex items-center gap-1.5 text-sm font-medium transition-colors",
+                                pathname?.startsWith('/jobs') ? "text-white" : "text-slate-400 hover:text-white"
+                            )}
+                        >
+                            <Briefcase className="w-3.5 h-3.5" />
+                            Jobs
+                        </Link>
                     </nav>
                 )}
 
@@ -257,6 +268,10 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                             <MapIcon className="w-4 h-4" />
                                             <span>Driver Map</span>
                                         </Link>
+                                        <Link href="/jobs" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Briefcase className="w-4 h-4" />
+                                            <span>Jobs</span>
+                                        </Link>
                                         <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <User className="w-4 h-4" />
                                             <span>Profile</span>
@@ -325,6 +340,9 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                                 </Link>
                                                 <Link href="/map" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                                     <MapIcon className="w-4 h-4" /><span>Driver Map</span>
+                                                </Link>
+                                                <Link href="/jobs" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <Briefcase className="w-4 h-4" /><span>Jobs</span>
                                                 </Link>
                                                 <Link href="/about" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                                     <Info className="w-4 h-4" /><span>About</span>
