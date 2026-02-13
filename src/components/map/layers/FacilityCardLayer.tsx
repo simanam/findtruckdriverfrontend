@@ -2,6 +2,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusDot } from "@/components/ui/StatusDot";
 import { MapMarker as Marker } from "../MapMarker";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface FacilityCardLayerProps {
     facilities?: any[];
@@ -77,6 +78,14 @@ export function FacilityCardLayer({ facilities }: FacilityCardLayerProps) {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Review link */}
+                        <Link
+                            href={`/reviews?search=${encodeURIComponent(fac.name || "")}`}
+                            className="block border-t border-slate-800 px-3 py-2 text-center text-[10px] text-sky-400 hover:text-sky-300 hover:bg-slate-800/50 transition-colors"
+                        >
+                            Rate & Review
+                        </Link>
 
                     </div>
                 </Marker>

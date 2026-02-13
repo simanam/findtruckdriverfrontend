@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { CompanySearch } from "@/components/profile/CompanySearch";
+import { FMCSACarrier } from "@/types/profile";
 
 const HAUL_TYPES = [
     { value: "otr", label: "OTR" },
@@ -60,6 +62,7 @@ export default function EditJobPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fmcsaStatus, setFmcsaStatus] = useState<"idle" | "verified">("idle");
 
     const [form, setForm] = useState({
         title: "",
@@ -109,6 +112,16 @@ export default function EditJobPage() {
         load();
     }, [jobId, router]);
 
+    const handleFMCSASelect = (carrier: FMCSACarrier) => {
+        setForm((prev) => ({
+            ...prev,
+            company_name: carrier.dba_name || carrier.legal_name || prev.company_name,
+            mc_number: carrier.mc_number || prev.mc_number,
+            dot_number: carrier.dot_number || prev.dot_number,
+        }));
+        setFmcsaStatus("verified");
+    };
+
     const toggleRequirement = (req: string) => {
         setForm((prev) => ({
             ...prev,
@@ -143,7 +156,7 @@ export default function EditJobPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-                <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+                <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-24 pb-8">
                     <div className="animate-pulse space-y-4">
                         <div className="h-8 bg-slate-800 rounded w-1/3" />
                         <div className="h-64 bg-slate-900/50 border border-slate-800/50 rounded-xl" />
@@ -157,7 +170,7 @@ export default function EditJobPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-24 pb-8">
                 <Link href={`/jobs/${jobId}`} className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                     Back to Job
@@ -175,20 +188,26 @@ export default function EditJobPage() {
                     {/* Company Info */}
                     <section className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-5 space-y-4">
                         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Company Info</h2>
+                        <CompanySearch onSelect={handleFMCSASelect} />
                         <div>
                             <label className="block text-sm text-slate-300 mb-1">Company Name *</label>
-                            <input className={inputClass} value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
+                            <input className={inputClass} value={form.company_name} onChange={(e) => { setForm({ ...form, company_name: e.target.value }); setFmcsaStatus("idle"); }} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm text-slate-300 mb-1">MC Number</label>
-                                <input className={inputClass} value={form.mc_number} onChange={(e) => setForm({ ...form, mc_number: e.target.value })} placeholder="e.g. 123456" />
+                                <input className={inputClass} value={form.mc_number} onChange={(e) => { setForm({ ...form, mc_number: e.target.value }); setFmcsaStatus("idle"); }} placeholder="e.g. 123456" />
                             </div>
                             <div>
                                 <label className="block text-sm text-slate-300 mb-1">DOT Number</label>
-                                <input className={inputClass} value={form.dot_number} onChange={(e) => setForm({ ...form, dot_number: e.target.value })} placeholder="e.g. 789012" />
+                                <input className={inputClass} value={form.dot_number} onChange={(e) => { setForm({ ...form, dot_number: e.target.value }); setFmcsaStatus("idle"); }} placeholder="e.g. 789012" />
                             </div>
                         </div>
+                        {fmcsaStatus === "verified" && (
+                            <span className="flex items-center gap-1 text-emerald-400 text-sm">
+                                <CheckCircle className="w-4 h-4" /> FMCSA Verified
+                            </span>
+                        )}
                     </section>
 
                     {/* Job Details */}

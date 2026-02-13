@@ -1,6 +1,6 @@
 "use client";
 
-import { Map as MapIcon, User, LogOut, Check, Menu, Info, Search, ChevronDown, Home, Briefcase } from "lucide-react";
+import { Map as MapIcon, User, LogOut, Check, Menu, Info, Search, ChevronDown, Home, Briefcase, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
@@ -169,6 +169,17 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                             <Briefcase className="w-3.5 h-3.5" />
                             Jobs
                         </Link>
+
+                        <Link
+                            href="/reviews"
+                            className={cn(
+                                "flex items-center gap-1.5 text-sm font-medium transition-colors",
+                                pathname?.startsWith('/reviews') ? "text-white" : "text-slate-400 hover:text-white"
+                            )}
+                        >
+                            <Star className="w-3.5 h-3.5" />
+                            Reviews
+                        </Link>
                     </nav>
                 )}
 
@@ -272,6 +283,10 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                             <Briefcase className="w-4 h-4" />
                                             <span>Jobs</span>
                                         </Link>
+                                        <Link href="/reviews" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Star className="w-4 h-4" />
+                                            <span>Reviews</span>
+                                        </Link>
                                         <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <User className="w-4 h-4" />
                                             <span>Profile</span>
@@ -343,6 +358,9 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                                 </Link>
                                                 <Link href="/jobs" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                                     <Briefcase className="w-4 h-4" /><span>Jobs</span>
+                                                </Link>
+                                                <Link href="/reviews" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <Star className="w-4 h-4" /><span>Reviews</span>
                                                 </Link>
                                                 <Link href="/about" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                                     <Info className="w-4 h-4" /><span>About</span>

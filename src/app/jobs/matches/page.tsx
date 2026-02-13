@@ -44,7 +44,7 @@ export default function JobMatchesPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-8">
                 {/* Header */}
                 <Link href="/jobs" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-4 transition-colors">
                     <ArrowLeft className="w-4 h-4" />

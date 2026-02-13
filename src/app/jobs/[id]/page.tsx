@@ -125,7 +125,7 @@ export default function JobDetailPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-                <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-8">
                     <div className="animate-pulse space-y-4">
                         <div className="h-6 bg-slate-800 rounded w-1/4" />
                         <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-8">
@@ -148,7 +148,7 @@ export default function JobDetailPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-8">
                 {/* Back */}
                 <Link href="/jobs" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors">
                     <ArrowLeft className="w-4 h-4" />

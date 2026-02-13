@@ -435,6 +435,111 @@ class ApiClient {
                 body: JSON.stringify({ role_details }),
             }),
     };
+
+    // --- Reviews ---
+    reviews = {
+        searchFacilities: (params: { q?: string; type?: string; lat?: number; lng?: number; limit?: number }) => {
+            const query = new URLSearchParams();
+            Object.entries(params).forEach(([key, val]) => {
+                if (val !== undefined && val !== null) {
+                    query.set(key, String(val));
+                }
+            });
+            return this.request<{ facilities: any[]; total: number }>(`/reviews/facilities/search?${query.toString()}`);
+        },
+
+        getFacility: (id: string) =>
+            this.request<{ facility: any; reviews: any[]; my_review: any | null }>(`/reviews/facilities/${id}`),
+
+        getNearby: (params: { lat: number; lng: number; radius?: number; type?: string; limit?: number; offset?: number }) => {
+            const query = new URLSearchParams();
+            Object.entries(params).forEach(([key, val]) => {
+                if (val !== undefined && val !== null) {
+                    query.set(key, String(val));
+                }
+            });
+            return this.request<{ facilities: any[]; total: number; limit: number; offset: number }>(`/reviews/facilities/nearby?${query.toString()}`);
+        },
+
+        getTopRated: (params?: { type?: string; limit?: number; offset?: number }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<{ facilities: any[]; total: number; limit: number; offset: number }>(`/reviews/facilities/top-rated?${query.toString()}`);
+        },
+
+        addFacility: (data: {
+            name: string;
+            facility_type: string;
+            address?: string;
+            city?: string;
+            state?: string;
+            zip_code?: string;
+            latitude?: number;
+            longitude?: number;
+            phone?: string;
+            website?: string;
+            google_place_id?: string;
+            google_data?: any;
+            google_rating?: number;
+            google_review_count?: number;
+            auto_detected_type?: string;
+            reviewer_latitude?: number;
+            reviewer_longitude?: number;
+        }) =>
+            this.request<any>('/reviews/facilities', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        submitReview: (facilityId: string, data: {
+            overall_rating: number;
+            category_ratings?: Record<string, number>;
+            comment?: string;
+            visit_date?: string;
+            would_return?: boolean;
+            visit_count?: string;
+            confirm_type?: string;
+        }) =>
+            this.request<any>(`/reviews/facilities/${facilityId}/reviews`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        updateReview: (facilityId: string, data: {
+            overall_rating?: number;
+            category_ratings?: Record<string, number>;
+            comment?: string;
+            visit_date?: string;
+            would_return?: boolean;
+            visit_count?: string;
+        }) =>
+            this.request<any>(`/reviews/facilities/${facilityId}/reviews/mine`, {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            }),
+
+        deleteReview: (facilityId: string) =>
+            this.request<{ success: boolean; message: string }>(`/reviews/facilities/${facilityId}/reviews/mine`, {
+                method: 'DELETE',
+            }),
+
+        flagType: (facilityId: string) =>
+            this.request<{ success: boolean; message: string; correction_count: number }>(`/reviews/facilities/${facilityId}/flag-type`, {
+                method: 'POST',
+            }),
+
+        getMyReviews: () =>
+            this.request<{ reviews: any[]; total: number }>('/reviews/me'),
+
+        getCategories: (facilityType: string) =>
+            this.request<Array<{ key: string; label: string }>>(`/reviews/categories/${facilityType}`),
+    };
 }
 
 export const api = new ApiClient();
