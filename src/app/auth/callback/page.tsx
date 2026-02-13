@@ -1,12 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { api } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 export default function AuthCallbackPage() {
+    return (
+        <Suspense fallback={
+            <main className="w-full h-screen bg-slate-950 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+            </main>
+        }>
+            <AuthCallbackContent />
+        </Suspense>
+    );
+}
+
+function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
