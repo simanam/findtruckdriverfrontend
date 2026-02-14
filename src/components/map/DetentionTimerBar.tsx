@@ -26,7 +26,7 @@ function formatDuration(minutes: number): string {
 export function DetentionTimerBar({ session }: DetentionTimerBarProps) {
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [expanded, setExpanded] = useState(false);
-    const intervalRef = useRef<NodeJS.Timeout>();
+    const intervalRef = useRef<NodeJS.Timeout>(null);
 
     const freeTimeSeconds = session.free_time_minutes * 60;
 
