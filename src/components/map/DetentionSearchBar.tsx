@@ -17,7 +17,7 @@ export function DetentionSearchBar({ onFacilitySelect }: DetentionSearchBarProps
     const [showResults, setShowResults] = useState(false);
     const { activeSession } = useDetentionStore();
     const inputRef = useRef<HTMLInputElement>(null);
-    const debounceRef = useRef<NodeJS.Timeout>();
+    const debounceRef = useRef<NodeJS.Timeout>(null);
 
     useEffect(() => {
         if (!query.trim() || query.length < 2) {
