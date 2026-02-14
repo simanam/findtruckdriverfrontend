@@ -71,7 +71,7 @@ export function LocationManager() {
             const position = await getCurrentLocation();
             const { latitude, longitude, accuracy, heading, speed } = position.coords;
 
-            const res = await api.drivers.updateLocation({
+            const res: any = await api.drivers.updateLocation({
                 latitude,
                 longitude,
                 heading: heading || 0,
