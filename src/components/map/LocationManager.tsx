@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { api } from "@/lib/api";
 import { useOnboardingStore, DriverStatus } from "@/stores/onboardingStore";
+import { useDetentionStore } from "@/stores/detentionStore";
 import { StatusPrompt } from "./StatusPrompt";
 
 export function LocationManager() {
@@ -46,8 +47,17 @@ export function LocationManager() {
                 });
             } else {
                 console.log("✅ App Open: Silent Update", res.current_status);
-                // Trigger map refresh
                 setLastLocationUpdate(Date.now());
+            }
+
+            // Restore active detention session on app focus
+            try {
+                const detentionRes = await api.detention.getActive();
+                if (detentionRes.active && detentionRes.session) {
+                    useDetentionStore.getState().setActiveSession(detentionRes.session);
+                }
+            } catch {
+                // Not logged in or no active session — fine
             }
         } catch (err) {
             console.error("Failed to process app open:", err);
@@ -61,7 +71,7 @@ export function LocationManager() {
             const position = await getCurrentLocation();
             const { latitude, longitude, accuracy, heading, speed } = position.coords;
 
-            await api.drivers.updateLocation({
+            const res = await api.drivers.updateLocation({
                 latitude,
                 longitude,
                 heading: heading || 0,
@@ -71,6 +81,14 @@ export function LocationManager() {
 
             console.log("📍 Background location updated:", latitude, longitude);
             setLastLocationUpdate(Date.now());
+
+            // Check for auto-checkout alert (driver left facility without checking out)
+            if (res?.auto_checkout_alert) {
+                const store = useDetentionStore.getState();
+                if (store.activeSession) {
+                    store.setAutoCheckoutAlert(res.auto_checkout_alert);
+                }
+            }
         } catch (err) {
             console.error("Failed to update background location:", err);
         }

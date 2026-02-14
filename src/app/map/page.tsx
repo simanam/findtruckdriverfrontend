@@ -1,16 +1,21 @@
 "use client";
 
-import { LiveStatsBar } from "@/components/stats/LiveStatsBar";
 import { LocationManager } from "@/components/map/LocationManager";
 import { FollowUpModal } from "@/components/map/FollowUpModal";
 import { GlobalMapLayer } from "@/components/map/GlobalMapLayer";
+import { DetentionControl } from "@/components/map/DetentionControl";
+import { ManualCheckoutModal } from "@/components/map/ManualCheckoutModal";
+import { DetentionProofGenerator } from "@/components/detention/DetentionProofGenerator";
 import { useOnboardingStore } from "@/stores/onboardingStore";
-import { useEffect } from "react";
+import { useDetentionStore } from "@/stores/detentionStore";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function MapPage() {
     const { avatarId, status, setAvatarId, setStatus, setHandle } = useOnboardingStore();
+    const { autoCheckoutAlert, setAutoCheckoutAlert } = useDetentionStore();
+    const [proofSessionId, setProofSessionId] = useState<string | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -47,6 +52,19 @@ export default function MapPage() {
             <GlobalMapLayer />
             <LocationManager />
             <FollowUpModal />
+            <DetentionControl onGenerateProof={(id) => setProofSessionId(id)} />
+            {autoCheckoutAlert && (
+                <ManualCheckoutModal
+                    alert={autoCheckoutAlert}
+                    onClose={() => setAutoCheckoutAlert(null)}
+                />
+            )}
+            {proofSessionId && (
+                <DetentionProofGenerator
+                    sessionId={proofSessionId}
+                    onClose={() => setProofSessionId(null)}
+                />
+            )}
         </main>
     );
 }

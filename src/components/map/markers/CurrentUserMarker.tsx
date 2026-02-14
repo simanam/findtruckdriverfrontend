@@ -28,6 +28,7 @@ export function CurrentUserMarker({ user, onClick }: CurrentUserMarkerProps) {
             longitude={user.location[0]}
             latitude={user.location[1]}
             anchor="bottom"
+            zIndex={10}
             onClick={(e: any) => {
                 e.stopPropagation();
                 onClick?.();

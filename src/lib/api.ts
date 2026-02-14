@@ -540,6 +540,88 @@ class ApiClient {
         getCategories: (facilityType: string) =>
             this.request<Array<{ key: string; label: string }>>(`/reviews/categories/${facilityType}`),
     };
+
+    // --- Detention Tracking ---
+    detention = {
+        checkIn: (data: {
+            reviewed_facility_id: string;
+            latitude: number;
+            longitude: number;
+            load_type?: string;
+        }) =>
+            this.request<any>('/detention/check-in', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        checkOut: (data: {
+            session_id: string;
+            latitude?: number;
+            longitude?: number;
+            notes?: string;
+        }) =>
+            this.request<any>('/detention/check-out', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        manualCheckout: (data: {
+            session_id: string;
+            actual_checkout_time: string;
+            notes?: string;
+        }) =>
+            this.request<any>('/detention/manual-checkout', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }),
+
+        cancelSession: (sessionId: string) =>
+            this.request<{ success: boolean; message: string }>(`/detention/${sessionId}/cancel`, {
+                method: 'POST',
+            }),
+
+        getActive: () =>
+            this.request<{ active: boolean; session: any | null }>('/detention/active'),
+
+        getHistory: (params?: { limit?: number; offset?: number }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<{ sessions: any[]; total: number; limit: number; offset: number }>(`/detention/history?${query.toString()}`);
+        },
+
+        getProof: (sessionId: string) =>
+            this.request<any>(`/detention/${sessionId}/proof`),
+
+        getHeatmap: (params?: { latitude?: number; longitude?: number; radius_miles?: number }) => {
+            const query = new URLSearchParams();
+            if (params) {
+                Object.entries(params).forEach(([key, val]) => {
+                    if (val !== undefined && val !== null) {
+                        query.set(key, String(val));
+                    }
+                });
+            }
+            return this.request<{ facilities: any[]; total: number }>(`/detention/heatmap?${query.toString()}`);
+        },
+
+        getFacilityStats: (facilityId: string) =>
+            this.request<any>(`/detention/facility/${facilityId}/stats`),
+
+        getSettings: () =>
+            this.request<{ free_time_minutes: number }>('/detention/settings'),
+
+        updateSettings: (data: { free_time_minutes: number }) =>
+            this.request<{ free_time_minutes: number }>('/detention/settings', {
+                method: 'PATCH',
+                body: JSON.stringify(data),
+            }),
+    };
 }
 
 export const api = new ApiClient();

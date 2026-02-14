@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import {
@@ -22,13 +22,22 @@ import { cn } from "@/lib/utils";
 
 export default function PublicTruckerProfilePage() {
     const params = useParams();
+    const router = useRouter();
     const driverId = params.id as string;
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [profileData, setProfileData] = useState<any>(null);
 
+    // Require login to view driver profiles
     useEffect(() => {
+        if (!api.isLoggedIn) {
+            router.push("/login");
+        }
+    }, [router]);
+
+    useEffect(() => {
+        if (!api.isLoggedIn) return;
         if (driverId) {
             loadPublicProfile();
         }

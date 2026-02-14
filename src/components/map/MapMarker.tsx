@@ -11,9 +11,10 @@ interface MapMarkerProps {
     children: React.ReactNode;
     onClick?: (e?: any) => void;
     anchor?: string; // dummy for compatibility with react-map-gl prop
+    zIndex?: number;
 }
 
-export function MapMarker({ longitude, latitude, children, onClick }: MapMarkerProps) {
+export function MapMarker({ longitude, latitude, children, onClick, zIndex }: MapMarkerProps) {
     const { map } = useMap();
     const markerRef = useRef<mapboxgl.Marker | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -34,6 +35,10 @@ export function MapMarker({ longitude, latitude, children, onClick }: MapMarkerP
 
     useEffect(() => {
         if (!map || !containerRef.current) return;
+
+        if (zIndex !== undefined) {
+            containerRef.current.style.zIndex = String(zIndex);
+        }
 
         const marker = new mapboxgl.Marker({
             element: containerRef.current

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { SeekerCard } from "@/components/jobs/SeekerCard";
 import { Users, ArrowLeft, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -40,6 +41,7 @@ const REGION_OPTIONS = [
 ];
 
 export default function JobSeekersPage() {
+    const router = useRouter();
     const [seekers, setSeekers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(0);
@@ -47,7 +49,15 @@ export default function JobSeekersPage() {
     const [equipment, setEquipment] = useState("");
     const [region, setRegion] = useState("");
 
+    // Require login to view driver profiles
     useEffect(() => {
+        if (!api.isLoggedIn) {
+            router.push("/login");
+        }
+    }, [router]);
+
+    useEffect(() => {
+        if (!api.isLoggedIn) return;
         setLoading(true);
         const params: any = {
             limit: PAGE_SIZE,

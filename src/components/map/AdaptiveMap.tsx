@@ -3,21 +3,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useMapData, ViewType } from '@/hooks/useMapData';
-import { NationalLayer } from './layers/NationalLayer';
-import { ClusterLayer } from './layers/ClusterLayer';
-import { FacilityLayer } from './layers/FacilityLayer';
-import { FacilityCardLayer } from './layers/FacilityCardLayer';
-import { DriverLayer } from './layers/DriverLayer';
+import { useDetentionMapData } from '@/hooks/useDetentionMapData';
+import { DetentionHeatmapLayer } from './layers/DetentionHeatmapLayer';
+import { DetentionFacilityLayer } from './layers/DetentionFacilityLayer';
 import { CurrentUserMarker } from './markers/CurrentUserMarker';
+import { FacilityDetailPopup } from './FacilityDetailPopup';
+import { DetentionSearchBar } from './DetentionSearchBar';
 import { cn } from '@/lib/utils';
-import { Crosshair, Loader2 } from 'lucide-react';
-import { WeatherStatsBar } from './WeatherStatsBar';
-import { LiveStatsBar } from '@/components/stats/LiveStatsBar';
+import { Crosshair } from 'lucide-react';
 import { MapProvider } from './MapContext';
-import { useOnboardingStore, DriverStatus } from '@/stores/onboardingStore';
-import { api } from '@/lib/api';
-import { useDriverAction } from '@/hooks/useDriverAction';
+import { useOnboardingStore } from '@/stores/onboardingStore';
+import { useDetentionStore } from '@/stores/detentionStore';
 
 // Token setup
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -26,11 +22,23 @@ interface AdaptiveMapProps {
     className?: string;
 }
 
+// Haversine distance calculation (client-side)
+function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 3959; // Earth radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export function AdaptiveMap({ className }: AdaptiveMapProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
     const { status, avatarId, handle } = useOnboardingStore();
-    const { updateStatus } = useDriverAction();
+    const { activeSession, setFacilityPopupOpen } = useDetentionStore();
+
+    // Selected facility for detail popup
+    const [selectedFacility, setSelectedFacility] = useState<any>(null);
 
     // Viewport state to drive logic
     const [viewport, setViewport] = useState({
@@ -39,18 +47,8 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
         zoom: 4
     });
 
-    const [viewType, setViewType] = useState<ViewType>('national');
-
-    // Determine view type based on zoom
-    useEffect(() => {
-        if (viewport.zoom <= 4.5) setViewType('national');
-        else if (viewport.zoom <= 8.5) setViewType('state');
-        else if (viewport.zoom <= 12.5) setViewType('metro');
-        else setViewType('local');
-    }, [viewport.zoom]);
-
-    // Fetch appropriate data for current view
-    const { data, isLoading } = useMapData(viewport, viewType);
+    // Fetch detention-specific map data
+    const { data, isLoading } = useDetentionMapData(viewport);
 
     // Initialize Map
     useEffect(() => {
@@ -95,13 +93,10 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
         };
     }, []);
 
-
     // Fly to user's location
     const flyToUser = useCallback((zoomLevel?: number) => {
         if (data?.current_user?.location && mapInstance) {
-            // Default to street level (14) if no zoom provided (standard "Find Me" behavior)
             const targetZoom = zoomLevel || 14;
-
             mapInstance.flyTo({
                 center: data.current_user.location,
                 zoom: targetZoom,
@@ -111,134 +106,140 @@ export function AdaptiveMap({ className }: AdaptiveMapProps) {
         }
     }, [data?.current_user, mapInstance]);
 
+    // Fly to a specific location
+    const flyToLocation = useCallback((lng: number, lat: number, zoom?: number) => {
+        if (mapInstance) {
+            mapInstance.flyTo({
+                center: [lng, lat],
+                zoom: zoom || 13,
+                duration: 1500,
+                essential: true
+            });
+        }
+    }, [mapInstance]);
+
     // Initial Fly-To (User or Geolocation)
     const hasFlown = useRef(false);
     useEffect(() => {
-        // 1. If we have a logged-in user with location, fly there
         if (data?.current_user?.location && mapInstance && !hasFlown.current) {
-            flyToUser(7);
+            flyToUser(10);
             hasFlown.current = true;
             return;
         }
 
-        // 2. If NO logged-in user, try to get geolocation to center map relevantly
-        // This ensures "ghost" reuse of previous sessions or just better UX
         if (!data?.current_user && mapInstance && !hasFlown.current) {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         const { latitude, longitude } = position.coords;
-
                         mapInstance.flyTo({
                             center: [longitude, latitude],
-                            zoom: 7, // State level view
+                            zoom: 10,
                             duration: 2000,
                             essential: true
                         });
                         hasFlown.current = true;
                     },
-                    (error) => {
-                        console.log("Geolocation denied or error, staying at default center", error);
-                        // Optional: we could fly to a default useful spot here if needed
+                    () => {
+                        // Stay at default center
                     }
                 );
             }
         }
     }, [data?.current_user, mapInstance, flyToUser]);
 
-    // Handle User Click - Toggle Status
-    const handleUserClick = useCallback(async () => {
-        flyToUser(14);
-
-        // Cycle status: rolling -> waiting -> parked -> rolling
-        const nextStatus: DriverStatus =
-            status === 'rolling' ? 'waiting' :
-                status === 'waiting' ? 'parked' : 'rolling';
-
-        // API update with follow-up support
-        try {
-            await updateStatus(nextStatus);
-        } catch (e: any) {
-            console.error("Failed to update status", e);
-            if (e.code === 'PERMISSION_DENIED' || e.message?.includes("Location is required")) {
-                alert("📍 Maps Need Location\n\nTo update your status, we need to know where you are. We don't want your data—we just want to put your dot on the map.\n\n🛡️ Privacy:\n• We only check location on updates\n• We only show your approximate area when parked\n\nPlease check your browser settings to enable location.");
-            }
+    // Handle facility selection from map marker
+    const handleFacilitySelect = useCallback((facility: any) => {
+        setSelectedFacility(facility);
+        setFacilityPopupOpen(true);
+        if (facility.location) {
+            flyToLocation(facility.location[0], facility.location[1], 14);
         }
-    }, [status, updateStatus, flyToUser]);
+    }, [flyToLocation, setFacilityPopupOpen]);
 
-    // Check if user is visible in current aggregates
-    const userInCluster = data?.clusters?.some(c => c.includes_current_user);
-    const userInFacility = data?.facilities?.some(f => f.includes_current_user);
+    // Handle search result selection (fly to facility)
+    const handleSearchSelect = useCallback((facility: any) => {
+        if (facility.latitude && facility.longitude) {
+            flyToLocation(facility.longitude, facility.latitude, 14);
+            // Also open the detail popup
+            setSelectedFacility({
+                ...facility,
+                location: [facility.longitude, facility.latitude]
+            });
+            setFacilityPopupOpen(true);
+        }
+    }, [flyToLocation, setFacilityPopupOpen]);
 
-    // Should we show floating "You are here" marker?
-    const showFloatingUser = data?.current_user && !userInCluster && !userInFacility;
+    // Calculate user distance to selected facility
+    const userDistanceToSelected = selectedFacility && data?.current_user?.location
+        ? calcDistance(
+            data.current_user.location[1], data.current_user.location[0],
+            selectedFacility.location?.[1] || selectedFacility.latitude,
+            selectedFacility.location?.[0] || selectedFacility.longitude
+        )
+        : undefined;
 
     return (
         <div className={cn("relative w-full h-full bg-slate-950", className)}>
             <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
             <MapProvider value={{ map: mapInstance }}>
-                {/* --- LAYERS --- */}
-                {viewType === 'national' && (
-                    <NationalLayer regions={data?.regions} />
-                )}
+                {/* Detention Heatmap Layer (rendered via Mapbox native layer) */}
+                <DetentionHeatmapLayer map={mapInstance} data={data?.heatmapData} />
 
-                {viewType === 'state' && (
-                    <>
-                        <ClusterLayer clusters={data?.clusters} />
-                        <DriverLayer drivers={data?.drivers} />
-                    </>
-                )}
+                {/* Facility markers with detention data */}
+                <DetentionFacilityLayer
+                    facilities={data?.facilities}
+                    onFacilitySelect={handleFacilitySelect}
+                />
 
-                {viewType === 'metro' && (
-                    <>
-                        <FacilityLayer facilities={data?.facilities} />
-                        <DriverLayer drivers={data?.drivers} />
-                    </>
-                )}
-
-                {viewType === 'local' && (
-                    <>
-                        <FacilityCardLayer facilities={data?.facilities} />
-                        <DriverLayer drivers={data?.drivers} />
-                    </>
-                )}
-
-                {/* --- USER MARKER --- */}
-                {showFloatingUser && data.current_user && data.current_user.location && (
+                {/* Current user marker (always shown) */}
+                {data?.current_user?.location && (
                     <CurrentUserMarker
                         user={{
                             ...data.current_user,
-                            // Override with local state if available for instant feedback
                             avatar_id: avatarId || data.current_user.avatar_id,
                             handle: handle || data.current_user.handle,
                             status: status || data.current_user.status
                         }}
-                        onClick={handleUserClick}
+                        onClick={() => flyToUser(14)}
                     />
                 )}
             </MapProvider>
 
             {/* --- HUD CONTROLS --- */}
 
-            {/* View Indicator */}
-
+            {/* Top: Title + Search Bar */}
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
+                {!activeSession && !selectedFacility && (
+                    <p className="text-center text-white/60 text-[11px] font-medium tracking-wide uppercase mb-2">
+                        Track &amp; Calculate Your Detention
+                    </p>
+                )}
+                <DetentionSearchBar onFacilitySelect={handleSearchSelect} />
+            </div>
 
             {/* Find Me Button */}
             <button
                 onClick={() => flyToUser(14)}
-                className="absolute bottom-28 right-3 bg-yellow-400 text-black p-3 rounded-full shadow-lg hover:scale-110 transition-transform z-10 font-bold flex items-center gap-2 group"
+                className="absolute bottom-48 right-3 bg-yellow-400 text-black p-3 rounded-full shadow-lg hover:scale-110 transition-transform z-10 font-bold flex items-center gap-2 group"
                 aria-label="Find Me"
             >
                 <Crosshair className="w-5 h-5 group-hover:rotate-90 transition-transform" />
                 <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap">Find Me</span>
             </button>
 
-            {/* Top Center Stats Stack */}
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 w-full max-w-fit px-4 flex flex-col items-center">
-                <LiveStatsBar />
-                <WeatherStatsBar latitude={viewport.latitude} longitude={viewport.longitude} />
-            </div>
+            {/* Facility Detail Popup */}
+            {selectedFacility && (
+                <FacilityDetailPopup
+                    facility={selectedFacility}
+                    userDistance={userDistanceToSelected}
+                    onClose={() => {
+                        setSelectedFacility(null);
+                        setFacilityPopupOpen(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

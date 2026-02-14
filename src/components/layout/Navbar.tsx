@@ -1,6 +1,6 @@
 "use client";
 
-import { Map as MapIcon, User, LogOut, Check, Menu, Info, Search, ChevronDown, Home, Briefcase, Star } from "lucide-react";
+import { Map as MapIcon, User, LogOut, Menu, Info, Search, ChevronDown, Home, Briefcase, Star, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
@@ -8,7 +8,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
-import { useDriverAction } from "@/hooks/useDriverAction";
+import { useDetentionStore } from "@/stores/detentionStore";
 
 interface NavbarProps {
     className?: string;
@@ -16,21 +16,21 @@ interface NavbarProps {
 }
 
 export function Navbar({ className, onJoinClick }: NavbarProps) {
-    const { avatarId, handle, status, cbHandle, reset, setAvatarId, setStatus, setHandle } = useOnboardingStore();
+    const { avatarId, handle, cbHandle, reset, setAvatarId, setStatus, setHandle } = useOnboardingStore();
+    const { activeSession } = useDetentionStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(api.isLoggedIn);
     const categoryRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
-    const { updateStatus } = useDriverAction();
 
     // Hide navbar on studio pages
     if (pathname?.startsWith('/studio')) return null;
 
     // Listen for Supabase auth state changes to sync login status
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 setIsLoggedIn(true);
             } else if (event === 'SIGNED_OUT') {
@@ -156,7 +156,18 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                             className="flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors"
                         >
                             <MapIcon className="w-3.5 h-3.5" />
-                            Driver Map
+                            Detention Map
+                        </Link>
+
+                        <Link
+                            href="/detention/history"
+                            className={cn(
+                                "flex items-center gap-1.5 text-sm font-medium transition-colors",
+                                pathname?.startsWith('/detention') ? "text-white" : "text-slate-400 hover:text-white"
+                            )}
+                        >
+                            <Clock className="w-3.5 h-3.5" />
+                            History
                         </Link>
 
                         <Link
@@ -207,12 +218,9 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                     <span className="block text-sm font-medium text-slate-300">
                                         {cbHandle || handle || 'Driver'}
                                     </span>
-                                    {status && (
-                                        <span className={cn("block text-[10px] uppercase font-bold tracking-wider",
-                                            status === 'rolling' ? "text-emerald-400" :
-                                                status === 'waiting' ? "text-rose-400" : "text-sky-400"
-                                        )}>
-                                            {status}
+                                    {activeSession && (
+                                        <span className="block text-[10px] uppercase font-bold tracking-wider text-red-400">
+                                            Checked In
                                         </span>
                                     )}
                                 </div>
@@ -224,12 +232,9 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    {status && (
-                                        <span className={cn("absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900",
-                                            status === 'rolling' ? "bg-emerald-500" :
-                                                status === 'waiting' ? "bg-rose-500" : "bg-sky-500"
-                                        )}>
-                                            {status === 'rolling' && <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></span>}
+                                    {activeSession && (
+                                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900 bg-red-500">
+                                            <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></span>
                                         </span>
                                     )}
                                 </div>
@@ -238,38 +243,6 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                             {/* Dropdown Menu (Logged In) */}
                             {isMenuOpen && (
                                 <div className="absolute right-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
-                                    {/* Status Switcher Section */}
-                                    <div className="p-2 border-b border-slate-700/50">
-                                        <p className="text-xs font-bold text-slate-500 uppercase px-2 mb-2">Update Status</p>
-                                        <div className="grid gap-1">
-                                            {(['rolling', 'waiting', 'parked'] as const).map((s) => (
-                                                <button
-                                                    key={s}
-                                                    onClick={async () => {
-                                                        try {
-                                                            await updateStatus(s);
-                                                            setIsMenuOpen(false);
-                                                        } catch (e) {
-                                                            console.error(e);
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        "flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-medium transition-all",
-                                                        status === s
-                                                            ? "bg-slate-800 text-white"
-                                                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                                                    )}
-                                                >
-                                                    <span className={cn("w-2 h-2 rounded-full",
-                                                        s === 'rolling' ? "bg-emerald-500" : s === 'waiting' ? "bg-rose-500" : "bg-sky-500"
-                                                    )} />
-                                                    <span className="capitalize">{s}</span>
-                                                    {status === s && <Check className="w-3 h-3 ml-auto text-sky-400" />}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
                                     <div className="p-1">
                                         <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <Home className="w-4 h-4" />
@@ -277,7 +250,11 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                         </Link>
                                         <Link href="/map" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <MapIcon className="w-4 h-4" />
-                                            <span>Driver Map</span>
+                                            <span>Detention Map</span>
+                                        </Link>
+                                        <Link href="/detention/history" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Clock className="w-4 h-4" />
+                                            <span>Detention History</span>
                                         </Link>
                                         <Link href="/jobs" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                             <Briefcase className="w-4 h-4" />
@@ -354,7 +331,10 @@ export function Navbar({ className, onJoinClick }: NavbarProps) {
                                                     <Search className="w-4 h-4" /><span>Search</span>
                                                 </Link>
                                                 <Link href="/map" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-                                                    <MapIcon className="w-4 h-4" /><span>Driver Map</span>
+                                                    <MapIcon className="w-4 h-4" /><span>Detention Map</span>
+                                                </Link>
+                                                <Link href="/detention/history" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                                    <Clock className="w-4 h-4" /><span>Detention History</span>
                                                 </Link>
                                                 <Link href="/jobs" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
                                                     <Briefcase className="w-4 h-4" /><span>Jobs</span>
